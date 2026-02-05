@@ -8,7 +8,7 @@ public class HitScanShooter : MonoBehaviour
     [Header("Shot")]
     [SerializeField] private float range = 30f;
     [SerializeField] private float damage = 10f;
-    [SerializeField] private LayerMask hitMask = ~0; // по умолчанию всё
+    [SerializeField] private LayerMask hitMask = ~0; 
 
     [Header("Debug")]
     [SerializeField] private bool debugDraw = true;
@@ -29,9 +29,7 @@ public class HitScanShooter : MonoBehaviour
         InitializeReferences();
     }
 
-    /// <summary>
-    /// Стреляет по направлению (обычно нормализованному). Возвращает true, если попали во что-то.
-    /// </summary>
+
     public bool Shoot(Vector3 direction, out RaycastHit hit)
     {
         hit = default;
@@ -54,7 +52,6 @@ public class HitScanShooter : MonoBehaviour
 
         if (hasHit)
         {
-            // Collider может быть на дочернем объекте, поэтому ищем здоровье в родителях
             HealthComponent health = hit.collider.GetComponentInParent<HealthComponent>();
             if (health != null)
                 health.TakeDamage(damage);

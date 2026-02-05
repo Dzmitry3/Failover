@@ -8,13 +8,13 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private WeaponData weaponData;
 
     [Header("References")]
-    [SerializeField] private Camera aimCamera;          // Main Camera
-    [SerializeField] private Transform rotateRoot;      // Player root (обычно этот же объект)
-    [SerializeField] private Transform firePoint;       // пустышка FirePoint (опционально)
-    [SerializeField] private HitScanShooter shooter;    // HitScanShooter (на Player или Weapon)
+    [SerializeField] private Camera aimCamera;         
+    [SerializeField] private Transform rotateRoot;     
+    [SerializeField] private Transform firePoint;     
+    [SerializeField] private HitScanShooter shooter;  
 
     [Header("Aiming")]
-    [SerializeField] private LayerMask aimGroundMask;   // Ground
+    [SerializeField] private LayerMask aimGroundMask; 
     [SerializeField] private float maxAimRayDistance = 200f;
     [SerializeField] private bool rotateToAim = true;
 
@@ -57,20 +57,18 @@ public class WeaponController : MonoBehaviour
         shooter.SetRange(weaponData.range);
     }
 
-    // PlayerInput (Send Messages): action "Attack" => method "OnAttack"
+    
     public void OnAttack(InputValue value)
     {
         bool pressed = value.isPressed;
-
-        // Нажатие: один выстрел сразу
+        
         if (pressed && !_attackHeld)
         {
             _attackHeld = true;
             FireOnce(ignoreRateLimit: true);
             return;
         }
-
-        // Отпускание: прекратить автоогонь
+        
         if (!pressed)
             _attackHeld = false;
     }
@@ -79,8 +77,7 @@ public class WeaponController : MonoBehaviour
     {
         if (!_attackHeld) return;
         if (weaponData == null || shooter == null) return;
-
-        // Если пистолет не автоматический — удержание не стреляет
+        
         if (!weaponData.automatic) return;
 
         FireOnce(ignoreRateLimit: false);
@@ -132,15 +129,13 @@ public class WeaponController : MonoBehaviour
 
         Vector2 screenPos = Mouse.current.position.ReadValue();
         Ray ray = aimCamera.ScreenPointToRay(screenPos);
-
-        // 1) Сначала ищем пол (коллайдер на Ground)
+        
         if (Physics.Raycast(ray, out var hit, maxAimRayDistance, aimGroundMask, QueryTriggerInteraction.Ignore))
         {
             aimPoint = hit.point;
             return true;
         }
-
-        // 2) Фолбэк: плоскость на высоте игрока
+        
         Plane plane = new Plane(Vector3.up, new Vector3(0f, rotateRoot.position.y, 0f));
         if (plane.Raycast(ray, out float enter))
         {

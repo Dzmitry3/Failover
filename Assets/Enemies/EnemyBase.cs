@@ -7,13 +7,12 @@ public class EnemyBase : MonoBehaviour
     [Header("References")]
     [SerializeField] private HealthComponent health;
     [SerializeField] private Collider[] collidersToDisable;
-    [SerializeField] private Behaviour[] behavioursToDisableOnDeath; // AI, NavMeshAgent, etc.
+    [SerializeField] private Behaviour[] behavioursToDisableOnDeath; 
 
     [Header("Death")]
     [SerializeField] private bool destroyOnDeath = true;
 
-    public event Action<EnemyBase> OnDied; // удобно для фабрики/пула
-
+    public event Action<EnemyBase> OnDied; 
     public HealthComponent Health => health;
     public bool IsDead => health != null && health.IsDead;
 
@@ -25,7 +24,7 @@ public class EnemyBase : MonoBehaviour
         if (collidersToDisable == null || collidersToDisable.Length == 0)
             collidersToDisable = GetComponentsInChildren<Collider>(true);
 
-        // Авто-подхват: отключаем всё поведенческое, кроме самого EnemyBase/Health
+
         if (behavioursToDisableOnDeath == null || behavioursToDisableOnDeath.Length == 0)
             behavioursToDisableOnDeath = GetComponentsInChildren<Behaviour>(true);
     }
@@ -48,7 +47,7 @@ public class EnemyBase : MonoBehaviour
 
         health.OnDeath += HandleDeath;
 
-        // На случай, если объект возвращается из пула уже "мертвым" состоянием
+
         SetAliveState(true);
     }
 
@@ -58,9 +57,7 @@ public class EnemyBase : MonoBehaviour
             health.OnDeath -= HandleDeath;
     }
 
-    /// <summary>
-    /// Вызывать при выдаче из пула (или при спавне), чтобы враг "ожил".
-    /// </summary>
+
     public void Activate()
     {
         gameObject.SetActive(true);
@@ -76,7 +73,7 @@ public class EnemyBase : MonoBehaviour
         if (destroyOnDeath)
             Destroy(gameObject);
         else
-            gameObject.SetActive(false); // под пул
+            gameObject.SetActive(false);
     }
 
     private void SetAliveState(bool alive)
