@@ -21,18 +21,21 @@ public class WeaponController : MonoBehaviour
     private bool _attackHeld;
     private float _nextFireTime;
 
-    private void Reset()
+    private void InitializeReferences()
     {
         if (aimCamera == null) aimCamera = Camera.main;
         if (rotateRoot == null) rotateRoot = transform;
         if (shooter == null) shooter = GetComponent<HitScanShooter>();
     }
 
+    private void Reset()
+    {
+        InitializeReferences();
+    }
+
     private void Awake()
     {
-        if (aimCamera == null) aimCamera = Camera.main;
-        if (rotateRoot == null) rotateRoot = transform;
-        if (shooter == null) shooter = GetComponent<HitScanShooter>();
+        InitializeReferences();
 
         if (weaponData == null)
             Debug.LogError($"{nameof(WeaponController)}: WeaponData is not assigned.", this);
@@ -80,14 +83,7 @@ public class WeaponController : MonoBehaviour
         // Если пистолет не автоматический — удержание не стреляет
         if (!weaponData.automatic) return;
 
-        if (!TryGetAimPoint(out var aimPoint)) return;
-
-        if (rotateToAim) RotateTowards(aimPoint);
-
-        if (Time.time < _nextFireTime) return;
-        ConsumeFireCooldown();
-
-        ShootTowards(aimPoint);
+        FireOnce(ignoreRateLimit: false);
     }
 
     private void FireOnce(bool ignoreRateLimit)
@@ -112,12 +108,17 @@ public class WeaponController : MonoBehaviour
         _nextFireTime = Time.time + (1f / rate);
     }
 
+    private bool TryGetHorizontalDirection(Vector3 from, Vector3 to, out Vector3 direction)
+    {
+        direction = to - from;
+        direction.y = 0f;
+        return direction.sqrMagnitude >= 0.0001f;
+    }
+
     private void ShootTowards(Vector3 aimPoint)
     {
         Vector3 origin = (firePoint != null) ? firePoint.position : shooter.transform.position;
-        Vector3 dir = aimPoint - origin;
-        dir.y = 0f;
-        if (dir.sqrMagnitude < 0.0001f) return;
+        if (!TryGetHorizontalDirection(origin, aimPoint, out var dir)) return;
 
         shooter.Shoot(dir, out _);
     }
@@ -152,9 +153,7 @@ public class WeaponController : MonoBehaviour
 
     private void RotateTowards(Vector3 worldPoint)
     {
-        Vector3 dir = worldPoint - rotateRoot.position;
-        dir.y = 0f;
-        if (dir.sqrMagnitude < 0.0001f) return;
+        if (!TryGetHorizontalDirection(rotateRoot.position, worldPoint, out var dir)) return;
 
         rotateRoot.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
     }

@@ -14,14 +14,19 @@ public class HitScanShooter : MonoBehaviour
     [SerializeField] private bool debugDraw = true;
     [SerializeField] private float debugDrawTime = 0.05f;
 
-    private void Reset()
+    private void InitializeReferences()
     {
         if (firePoint == null) firePoint = transform;
     }
 
+    private void Reset()
+    {
+        InitializeReferences();
+    }
+
     private void Awake()
     {
-        if (firePoint == null) firePoint = transform;
+        InitializeReferences();
     }
 
     /// <summary>

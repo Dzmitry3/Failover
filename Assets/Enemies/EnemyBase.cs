@@ -17,19 +17,27 @@ public class EnemyBase : MonoBehaviour
     public HealthComponent Health => health;
     public bool IsDead => health != null && health.IsDead;
 
-    private void Reset()
+    private void InitializeReferences()
     {
-        health = GetComponent<HealthComponent>();
-        collidersToDisable = GetComponentsInChildren<Collider>(true);
+        if (health == null)
+            health = GetComponent<HealthComponent>();
+
+        if (collidersToDisable == null || collidersToDisable.Length == 0)
+            collidersToDisable = GetComponentsInChildren<Collider>(true);
 
         // Авто-подхват: отключаем всё поведенческое, кроме самого EnemyBase/Health
-        behavioursToDisableOnDeath = GetComponentsInChildren<Behaviour>(true);
+        if (behavioursToDisableOnDeath == null || behavioursToDisableOnDeath.Length == 0)
+            behavioursToDisableOnDeath = GetComponentsInChildren<Behaviour>(true);
+    }
+
+    private void Reset()
+    {
+        InitializeReferences();
     }
 
     private void Awake()
     {
-        if (health == null)
-            health = GetComponent<HealthComponent>();
+        InitializeReferences();
 
         if (health == null)
         {
@@ -73,25 +81,30 @@ public class EnemyBase : MonoBehaviour
 
     private void SetAliveState(bool alive)
     {
-        // Коллайдеры
-        if (collidersToDisable != null)
-        {
-            foreach (var c in collidersToDisable)
-            {
-                if (c != null) c.enabled = alive;
-            }
-        }
+        SetComponentsState(collidersToDisable, alive);
+        SetBehavioursState(behavioursToDisableOnDeath, alive);
+    }
 
-        // Поведение (AI/Agent/и т.п.)
-        if (behavioursToDisableOnDeath != null)
+    private void SetComponentsState(Collider[] components, bool enabled)
+    {
+        if (components == null) return;
+
+        foreach (var c in components)
         {
-            foreach (var b in behavioursToDisableOnDeath)
-            {
-                if (b == null) continue;
-                if (b == this) continue;           // EnemyBase
-                if (b == health) continue;         // HealthComponent
-                b.enabled = alive;
-            }
+            if (c != null) c.enabled = enabled;
+        }
+    }
+
+    private void SetBehavioursState(Behaviour[] behaviours, bool enabled)
+    {
+        if (behaviours == null) return;
+
+        foreach (var b in behaviours)
+        {
+            if (b == null) continue;
+            if (b == this) continue;           // EnemyBase
+            if (b == health) continue;         // HealthComponent
+            b.enabled = enabled;
         }
     }
 }

@@ -5,15 +5,20 @@ public class EnemyDummy : MonoBehaviour
 {
     [SerializeField] private HealthComponent health;
 
+    private void InitializeReferences()
+    {
+        if (health == null)
+            health = GetComponent<HealthComponent>();
+    }
+
     private void Reset()
     {
-        health = GetComponent<HealthComponent>();
+        InitializeReferences();
     }
 
     private void Awake()
     {
-        if (health == null)
-            health = GetComponent<HealthComponent>();
+        InitializeReferences();
 
         if (health == null)
         {
