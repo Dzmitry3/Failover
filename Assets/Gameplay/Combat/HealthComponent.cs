@@ -5,44 +5,34 @@ public class HealthComponent : MonoBehaviour
 {
     [SerializeField] private float maxHealth = 100f;
 
-    public float MaxHealth => maxHealth;
-    public float CurrentHealth => currentHealth;
+    private float currentHealth;
+
+    public float Current => currentHealth;
+    public float Max => maxHealth;
     public bool IsDead => currentHealth <= 0f;
 
+    public event Action<float, float> OnHealthChanged;
     public event Action OnDeath;
-    public event Action<float, float> OnHealthChanged; 
-
-    private float currentHealth;
 
     private void Awake()
     {
-        ResetHealth();
+        currentHealth = maxHealth;
+    } 
+
+    public void ApplyDelta(float delta)
+    {
+        if (IsDead) return;
+
+        currentHealth = Mathf.Clamp(currentHealth + delta, 0f, maxHealth);
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
+        if (currentHealth <= 0f)
+            OnDeath?.Invoke();
     }
 
     public void ResetHealth()
     {
         currentHealth = maxHealth;
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
-    }
-
-    public void TakeDamage(float damage)
-    {
-        if (IsDead) return;
-        if (damage <= 0f) return;
-
-        currentHealth -= damage;
-        currentHealth = Mathf.Max(currentHealth, 0f);
-
-        OnHealthChanged?.Invoke(currentHealth, maxHealth);
-
-        if (currentHealth <= 0f)
-        {
-            Die();
-        }
-    }
-
-    private void Die()
-    {
-        OnDeath?.Invoke();
     }
 }

@@ -1318,17 +1318,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04ffea70c00e6184d8f0b4ab8f901f83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponController
+  weaponData: {fileID: 11400000, guid: aee4b3ec7a9e76c4498449936b9a8e21, type: 2}
   aimCamera: {fileID: 330585545}
   rotateRoot: {fileID: 1449960719}
-  shooter: {fileID: 1458946260}
   firePoint: {fileID: 1048637119}
-  weaponData: {fileID: 11400000, guid: aee4b3ec7a9e76c4498449936b9a8e21, type: 2}
+  shooter: {fileID: 1458946260}
   aimGroundMask:
     serializedVersion: 2
     m_Bits: 64
   maxAimRayDistance: 200
   rotateToAim: 1
-  fireRate: 6
 --- !u!114 &1449960724
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1386,7 +1385,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 68e1e2f96bdfa39438b577bfaed76690, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HitScanShooter
-  firePoint: {fileID: 1458946259}
+  firePoint: {fileID: 1048637119}
   range: 30
   damage: 10
   hitMask:

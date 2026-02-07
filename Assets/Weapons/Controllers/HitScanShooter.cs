@@ -1,4 +1,5 @@
 using UnityEngine;
+using Zenject;
 
 public class HitScanShooter : MonoBehaviour
 {
@@ -13,6 +14,15 @@ public class HitScanShooter : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool debugDraw = true;
     [SerializeField] private float debugDrawTime = 0.05f;
+    
+    private HealthProcessor _healthProcessor;
+    [Inject]
+    public void Construct(HealthProcessor healthProcessor)
+    {
+        _healthProcessor = healthProcessor;
+        //Debug.Log("HealthProcessor injected: " + (_healthProcessor != null));
+
+    }
 
     private void InitializeReferences()
     {
@@ -54,7 +64,7 @@ public class HitScanShooter : MonoBehaviour
         {
             HealthComponent health = hit.collider.GetComponentInParent<HealthComponent>();
             if (health != null)
-                health.TakeDamage(damage);
+                _healthProcessor.DealDamage(health, damage);
         }
 
         if (debugDraw)

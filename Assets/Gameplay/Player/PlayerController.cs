@@ -29,9 +29,10 @@ public class PlayerController : MonoBehaviour
         if (moveInput.magnitude < 0.01f) return;
         Vector3 moveDirection = new Vector3(moveInput.x, 0f, moveInput.y).normalized;
         
-        if (characterController != null)
+        if (characterController)
         {
-            characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
+            characterController.Move(moveDirection * (moveSpeed * Time.deltaTime));
+            
         }
     }
 }
