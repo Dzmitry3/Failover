@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &1
+MonoBehaviour:
+  m_ObjectHideFlags: 53
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a24e5b987d8f824f8bc15cfecd93d4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::ProjectScannerTool.ProjectScannerSettings
+  roots:
+  - Path: Assets/AddressableAssetsData
+    DisplayName: AddressableAssetsData
+    Enabled: 0
+  - Path: Assets/Adventure_Character
+    DisplayName: Adventure_Character
+    Enabled: 0
+  - Path: Assets/AngeloMaN87
+    DisplayName: AngeloMaN87
+    Enabled: 0
+  - Path: Assets/Core
+    DisplayName: Core
+    Enabled: 1
+  - Path: Assets/Editor
+    DisplayName: Editor
+    Enabled: 0
+  - Path: Assets/Enemies
+    DisplayName: Enemies
+    Enabled: 1
+  - Path: Assets/Gameplay
+    DisplayName: Gameplay
+    Enabled: 1
+  - Path: Assets/MONSTER X
+    DisplayName: MONSTER X
+    Enabled: 0
+  - Path: Assets/Prefabs
+    DisplayName: Prefabs
+    Enabled: 1
+  - Path: Assets/Scenes
+    DisplayName: Scenes
+    Enabled: 1
+  - Path: Assets/ScriptableObjects
+    DisplayName: ScriptableObjects
+    Enabled: 1
+  - Path: Assets/Settings
+    DisplayName: Settings
+    Enabled: 0
+  - Path: Assets/TutorialInfo
+    DisplayName: TutorialInfo
+    Enabled: 0
+  - Path: Assets/UI
+    DisplayName: UI
+    Enabled: 1
+  - Path: Assets/Weapons
+    DisplayName: Weapons
+    Enabled: 1
+  hasLastScan: 1
+  lastScanJson: '{"Nodes":[{"Id":1,"ParentId":0,"DisplayName":"Assets","AssetPath":"Assets","Kind":0,"AssetTypeName":"Folder","ChildrenCount":8},{"Id":23,"ParentId":21,"DisplayName":"Combat","AssetPath":"Assets/Gameplay/Combat","Kind":0,"AssetTypeName":"Folder","ChildrenCount":2},{"Id":11,"ParentId":4,"DisplayName":"Controllers","AssetPath":"Assets/Weapons/Controllers","Kind":0,"AssetTypeName":"Folder","ChildrenCount":2},{"Id":16,"ParentId":1,"DisplayName":"Core","AssetPath":"Assets/Core","Kind":0,"AssetTypeName":"Folder","ChildrenCount":1},{"Id":5,"ParentId":4,"DisplayName":"Data","AssetPath":"Assets/Weapons/Data","Kind":0,"AssetTypeName":"Folder","ChildrenCount":1},{"Id":7,"ParentId":1,"DisplayName":"Enemies","AssetPath":"Assets/Enemies","Kind":0,"AssetTypeName":"Folder","ChildrenCount":3},{"Id":21,"ParentId":1,"DisplayName":"Gameplay","AssetPath":"Assets/Gameplay","Kind":0,"AssetTypeName":"Folder","ChildrenCount":2},{"Id":17,"ParentId":16,"DisplayName":"Installers","AssetPath":"Assets/Core/Installers","Kind":0,"AssetTypeName":"Folder","ChildrenCount":1},{"Id":22,"ParentId":21,"DisplayName":"Player","AssetPath":"Assets/Gameplay/Player","Kind":0,"AssetTypeName":"Folder","ChildrenCount":1},{"Id":14,"ParentId":1,"DisplayName":"Prefabs","AssetPath":"Assets/Prefabs","Kind":0,"AssetTypeName":"Folder","ChildrenCount":2},{"Id":15,"ParentId":14,"DisplayName":"Projectiles","AssetPath":"Assets/Prefabs/Projectiles","Kind":0,"AssetTypeName":"Folder","ChildrenCount":0},{"Id":19,"ParentId":2,"DisplayName":"SampleScene","AssetPath":"Assets/Scenes/SampleScene","Kind":0,"AssetTypeName":"Folder","ChildrenCount":1},{"Id":2,"ParentId":1,"DisplayName":"Scenes","AssetPath":"Assets/Scenes","Kind":0,"AssetTypeName":"Folder","ChildrenCount":3},{"Id":13,"ParentId":1,"DisplayName":"ScriptableObjects","AssetPath":"Assets/ScriptableObjects","Kind":0,"AssetTypeName":"Folder","ChildrenCount":1},{"Id":10,"ParentId":1,"DisplayName":"UI","AssetPath":"Assets/UI","Kind":0,"AssetTypeName":"Folder","ChildrenCount":0},{"Id":6,"ParentId":5,"DisplayName":"WeaponData","AssetPath":"Assets/Weapons/Data/WeaponData","Kind":0,"AssetTypeName":"Folder","ChildrenCount":1},{"Id":27,"ParentId":13,"DisplayName":"Weapons","AssetPath":"Assets/ScriptableObjects/Weapons","Kind":0,"AssetTypeName":"Folder","ChildrenCount":1},{"Id":4,"ParentId":1,"DisplayName":"Weapons","AssetPath":"Assets/Weapons","Kind":0,"AssetTypeName":"Folder","ChildrenCount":2},{"Id":25,"ParentId":14,"DisplayName":"Weapons","AssetPath":"Assets/Prefabs/Weapons","Kind":0,"AssetTypeName":"Folder","ChildrenCount":0},{"Id":9,"ParentId":7,"DisplayName":"EnemyAI_NavMesh.cs","AssetPath":"Assets/Enemies/EnemyAI_NavMesh.cs","Kind":2,"AssetTypeName":"MonoScript","ChildrenCount":0},{"Id":8,"ParentId":7,"DisplayName":"EnemyBase.cs","AssetPath":"Assets/Enemies/EnemyBase.cs","Kind":2,"AssetTypeName":"MonoScript","ChildrenCount":0},{"Id":33,"ParentId":7,"DisplayName":"EnemyDummy.cs","AssetPath":"Assets/Enemies/EnemyDummy.cs","Kind":2,"AssetTypeName":"MonoScript","ChildrenCount":0},{"Id":18,"ParentId":17,"DisplayName":"GameplayInstaller.cs","AssetPath":"Assets/Core/Installers/GameplayInstaller.cs","Kind":2,"AssetTypeName":"MonoScript","ChildrenCount":0},{"Id":31,"ParentId":23,"DisplayName":"HealthComponent.cs","AssetPath":"Assets/Gameplay/Combat/HealthComponent.cs","Kind":2,"AssetTypeName":"MonoScript","ChildrenCount":0},{"Id":29,"ParentId":23,"DisplayName":"HealthProcessor.cs","AssetPath":"Assets/Gameplay/Combat/HealthProcessor.cs","Kind":2,"AssetTypeName":"MonoScript","ChildrenCount":0},{"Id":24,"ParentId":11,"DisplayName":"HitScanShooter.cs","AssetPath":"Assets/Weapons/Controllers/HitScanShooter.cs","Kind":2,"AssetTypeName":"MonoScript","ChildrenCount":0},{"Id":3,"ParentId":2,"DisplayName":"Level_01.unity","AssetPath":"Assets/Scenes/Level_01.unity","Kind":1,"AssetTypeName":"SceneAsset","ChildrenCount":0},{"Id":20,"ParentId":19,"DisplayName":"NavMesh-PrototypeMap.asset","AssetPath":"Assets/Scenes/SampleScene/NavMesh-PrototypeMap.asset","Kind":1,"AssetTypeName":"NavMeshData","ChildrenCount":0},{"Id":28,"ParentId":22,"DisplayName":"PlayerController.cs","AssetPath":"Assets/Gameplay/Player/PlayerController.cs","Kind":2,"AssetTypeName":"MonoScript","ChildrenCount":0},{"Id":26,"ParentId":2,"DisplayName":"SampleScene.unity","AssetPath":"Assets/Scenes/SampleScene.unity","Kind":1,"AssetTypeName":"SceneAsset","ChildrenCount":0},{"Id":12,"ParentId":11,"DisplayName":"WeaponController.cs","AssetPath":"Assets/Weapons/Controllers/WeaponController.cs","Kind":2,"AssetTypeName":"MonoScript","ChildrenCount":0},{"Id":30,"ParentId":6,"DisplayName":"WeaponData.cs","AssetPath":"Assets/Weapons/Data/WeaponData/WeaponData.cs","Kind":2,"AssetTypeName":"MonoScript","ChildrenCount":0},{"Id":32,"ParentId":27,"DisplayName":"WeaponData_Pistol.asset","AssetPath":"Assets/ScriptableObjects/Weapons/WeaponData_Pistol.asset","Kind":1,"AssetTypeName":"WeaponData","ChildrenCount":0}]}'
+  lastAnalysisCacheJson: '{"Entries":[{"Path":"Assets/Editor/ProjectScanner/ProjectScannerUtils.cs","Analysis":{"AssetPath":"Assets/Editor/ProjectScanner/ProjectScannerUtils.cs","Classes":[{"Name":"ProjectScannerUtils","LifecycleMethods":[],"CallbackMethods":[],"PublicMethods":["public
+    List<string> GetTopLevelAssetFolders()","public string AssetPathToFullPath(string
+    assetPath)","public string GetFileName(string path)","public string GetParentFolderPath(string
+    assetPath)"],"InjectMarkers":[],"Fields":[]}]}},{"Path":"Assets/Editor/ProjectScanner/ProjectScannerSettings.cs","Analysis":{"AssetPath":"Assets/Editor/ProjectScanner/ProjectScannerSettings.cs","Classes":[{"Name":"ProjectScannerSettings","LifecycleMethods":[],"CallbackMethods":[],"PublicMethods":["public
+    void EnsureRootsInitialized()","public void Save()","public void SetAllRoots(bool
+    enabled)","public void SetRootEnabled(string path, bool enabled)"],"InjectMarkers":[],"Fields":["public
+    bool Enabled","public string DisplayName","public string Path","[SerializeField]
+    bool hasLastScan"]}]}},{"Path":"Assets/Enemies/EnemyAI_NavMesh.cs","Analysis":{"AssetPath":"Assets/Enemies/EnemyAI_NavMesh.cs","Classes":[{"Name":"EnemyAI_NavMesh","LifecycleMethods":["Awake()","Start()","Update()"],"CallbackMethods":[],"PublicMethods":[],"InjectMarkers":[],"Fields":["[SerializeField]
+    Transform target"]}]}},{"Path":"Assets/Enemies/EnemyBase.cs","Analysis":{"AssetPath":"Assets/Enemies/EnemyBase.cs","Classes":[{"Name":"EnemyBase","LifecycleMethods":["Awake()","OnDestroy()","Reset()"],"CallbackMethods":[],"PublicMethods":["public
+    void Activate()"],"InjectMarkers":[],"Fields":["public event Action<EnemyBase>
+    OnDied","[SerializeField] Behaviour[] behavioursToDisableOnDeath","[SerializeField]
+    Collider[] collidersToDisable","[SerializeField] HealthComponent health"]}]}},{"Path":"Assets/Gameplay/Combat/HealthProcessor.cs","Analysis":{"AssetPath":"Assets/Gameplay/Combat/HealthProcessor.cs","Classes":[{"Name":"HealthProcessor","LifecycleMethods":[],"CallbackMethods":[],"PublicMethods":["public
+    void DealDamage(HealthComponent target, float baseDamage, DamageContext context
+    = default)","public void Heal(HealthComponent target, float amount, HealContext
+    context = default)"],"InjectMarkers":[],"Fields":["public bool boosted","public
+    bool hasArmor","public bool isCritical"]}]}},{"Path":"Assets/Gameplay/Combat/HealthComponent.cs","Analysis":{"AssetPath":"Assets/Gameplay/Combat/HealthComponent.cs","Classes":[{"Name":"HealthComponent","LifecycleMethods":["Awake()"],"CallbackMethods":[],"PublicMethods":["public
+    void ApplyDelta(float delta)","public void ResetHealth()"],"InjectMarkers":[],"Fields":["public
+    event Action OnDeath","public event Action<float, float> OnHealthChanged","public
+    Func<float, bool> CanApplyDelta"]}]}},{"Path":"Assets/TutorialInfo/Scripts/Readme.cs","Analysis":{"AssetPath":"Assets/TutorialInfo/Scripts/Readme.cs","Classes":[{"Name":"Readme","LifecycleMethods":[],"CallbackMethods":[],"PublicMethods":[],"InjectMarkers":[],"Fields":["public
+    bool loadedLayout","public Section[] sections","public string heading, text,
+    linkText, url","public string title","public Texture2D icon"]},{"Name":"Section","LifecycleMethods":[],"CallbackMethods":[],"PublicMethods":[],"InjectMarkers":[],"Fields":["public
+    bool loadedLayout","public Section[] sections","public string heading, text,
+    linkText, url","public string title","public Texture2D icon"]}]}},{"Path":"Assets/TutorialInfo/Scripts/Editor/ReadmeEditor.cs","Analysis":{"AssetPath":"Assets/TutorialInfo/Scripts/Editor/ReadmeEditor.cs","Classes":[{"Name":"ReadmeEditor","LifecycleMethods":[],"CallbackMethods":[],"PublicMethods":["public
+    void OnInspectorGUI()"],"InjectMarkers":[],"Fields":["[SerializeField] GUIStyle
+    m_BodyStyle","[SerializeField] GUIStyle m_ButtonStyle","[SerializeField] GUIStyle
+    m_HeadingStyle","[SerializeField] GUIStyle m_LinkStyle","[SerializeField] GUIStyle
+    m_TitleStyle"]}]}},{"Path":"Assets/Core/Installers/GameplayInstaller.cs","Analysis":{"AssetPath":"Assets/Core/Installers/GameplayInstaller.cs","Classes":[{"Name":"GameplayInstaller","LifecycleMethods":[],"CallbackMethods":[],"PublicMethods":["public
+    void InstallBindings()"],"InjectMarkers":["InstallBindings(...)"],"Fields":[]}]}},{"Path":"Assets/Gameplay/Player/PlayerController.cs","Analysis":{"AssetPath":"Assets/Gameplay/Player/PlayerController.cs","Classes":[{"Name":"PlayerController","LifecycleMethods":["Awake()","Update()"],"CallbackMethods":[],"PublicMethods":["public
+    void OnMove(InputAction.CallbackContext ctx)"],"InjectMarkers":[],"Fields":[]}]}},{"Path":"Assets/Enemies/EnemyDummy.cs","Analysis":{"AssetPath":"Assets/Enemies/EnemyDummy.cs","Classes":[{"Name":"EnemyDummy","LifecycleMethods":["Awake()","OnDestroy()","Reset()"],"CallbackMethods":[],"PublicMethods":[],"InjectMarkers":[],"Fields":["[SerializeField]
+    HealthComponent health"]}]}},{"Path":"Assets/Weapons/Controllers/HitScanShooter.cs","Analysis":{"AssetPath":"Assets/Weapons/Controllers/HitScanShooter.cs","Classes":[{"Name":"HitScanShooter","LifecycleMethods":["Awake()","Reset()"],"CallbackMethods":[],"PublicMethods":["public
+    bool Shoot(Vector3 direction, out RaycastHit hit)","public void Construct(HealthProcessor
+    healthProcessor)","public void SetFirePoint(Transform newFirePoint)"],"InjectMarkers":["Construct(...)","[Inject]"],"Fields":["[SerializeField]
+    LayerMask hitMask","[SerializeField] Transform firePoint"]}]}},{"Path":"Assets/Weapons/Controllers/WeaponController.cs","Analysis":{"AssetPath":"Assets/Weapons/Controllers/WeaponController.cs","Classes":[{"Name":"WeaponController","LifecycleMethods":["Awake()","Reset()","Update()"],"CallbackMethods":[],"PublicMethods":["public
+    void OnFire(InputAction.CallbackContext ctx)"],"InjectMarkers":[],"Fields":["[SerializeField]
+    Camera aimCamera","[SerializeField] HitScanShooter shooter","[SerializeField]
+    LayerMask aimGroundMask","[SerializeField] Transform firePoint","[SerializeField]
+    Transform rotateRoot","[SerializeField] WeaponData weaponData"]}]}},{"Path":"Assets/Weapons/Data/WeaponData/WeaponData.cs","Analysis":{"AssetPath":"Assets/Weapons/Data/WeaponData/WeaponData.cs","Classes":[{"Name":"WeaponData","LifecycleMethods":[],"CallbackMethods":[],"PublicMethods":[],"InjectMarkers":[],"Fields":[]}]}}]}'

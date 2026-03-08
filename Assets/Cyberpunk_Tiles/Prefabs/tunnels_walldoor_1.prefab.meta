@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4ebb2fec07d52a74f87eaf985c13f279
+timeCreated: 1471447495
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 71881
+  packageName: Cyberpunk Environment Tileset
+  packageVersion: 1.0
+  assetPath: Assets/Cyberpunk_Tiles/Prefabs/tunnels_walldoor_1.prefab
+  uploadId: 140137

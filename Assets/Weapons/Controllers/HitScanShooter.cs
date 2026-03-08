@@ -9,13 +9,16 @@ public class HitScanShooter : MonoBehaviour
     [Header("Shot")]
     [SerializeField] private float range = 30f;
     [SerializeField] private float damage = 10f;
-    [SerializeField] private LayerMask hitMask = ~0; 
+    [SerializeField] private LayerMask hitMask; // Damageable | Environment
+    [SerializeField] private HitScanAutoAim autoAim;
 
     [Header("Debug")]
     [SerializeField] private bool debugDraw = true;
     [SerializeField] private float debugDrawTime = 0.05f;
+    [SerializeField] private bool debugDamageLogs = false;
     
     private HealthProcessor _healthProcessor;
+    private bool _missingProcessorWarned;
     [Inject]
     public void Construct(HealthProcessor healthProcessor)
     {
@@ -27,6 +30,7 @@ public class HitScanShooter : MonoBehaviour
     private void InitializeReferences()
     {
         if (firePoint == null) firePoint = transform;
+        if (autoAim == null) autoAim = GetComponent<HitScanAutoAim>();
     }
 
     private void Reset()
@@ -48,12 +52,14 @@ public class HitScanShooter : MonoBehaviour
             return false;
 
         direction.Normalize();
-
         Vector3 origin = firePoint.position;
+        Vector3 shotDirection = autoAim != null
+            ? autoAim.GetShotDirection(origin, direction, range, hitMask)
+            : direction;
 
         bool hasHit = Physics.Raycast(
             origin,
-            direction,
+            shotDirection,
             out hit,
             range,
             hitMask,
@@ -64,12 +70,43 @@ public class HitScanShooter : MonoBehaviour
         {
             HealthComponent health = hit.collider.GetComponentInParent<HealthComponent>();
             if (health != null)
-                _healthProcessor.DealDamage(health, damage);
+            {
+                if (_healthProcessor != null)
+                {
+                    _healthProcessor.DealDamage(health, damage);
+                }
+                else
+                {
+                    // Safe fallback: still apply damage even if DI setup is broken.
+                    health.ApplyDelta(-damage);
+
+                    if (!_missingProcessorWarned)
+                    {
+                        _missingProcessorWarned = true;
+                        Debug.LogWarning(
+                            $"{nameof(HitScanShooter)}: {nameof(HealthProcessor)} was not injected, direct damage fallback is used.",
+                            this);
+                    }
+                }
+
+                if (debugDamageLogs)
+                {
+                    Debug.Log(
+                        $"{nameof(HitScanShooter)} hit {hit.collider.name}, damage={damage}, hp={health.Current}/{health.Max}",
+                        this);
+                }
+            }
+            else if (debugDamageLogs)
+            {
+                Debug.Log(
+                    $"{nameof(HitScanShooter)} hit {hit.collider.name}, but no {nameof(HealthComponent)} found on target root.",
+                    this);
+            }
         }
 
         if (debugDraw)
         {
-            Vector3 end = hasHit ? hit.point : origin + direction * range;
+            Vector3 end = hasHit ? hit.point : origin + shotDirection * range;
             Debug.DrawLine(origin, end, hasHit ? Color.red : Color.yellow, debugDrawTime);
         }
 

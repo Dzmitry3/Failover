@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6524455c4fa266d4db132ab85706af35
+timeCreated: 1470787588
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 71881
+  packageName: Cyberpunk Environment Tileset
+  packageVersion: 1.0
+  assetPath: Assets/Cyberpunk_Tiles/Prefabs/tunnels_wall1.prefab
+  uploadId: 140137

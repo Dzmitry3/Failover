@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d403e14b8a8dea849872893feaf681d6
+timeCreated: 1473338689
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 71881
+  packageName: Cyberpunk Environment Tileset
+  packageVersion: 1.0
+  assetPath: Assets/Cyberpunk_Tiles/Prefabs/tunnels_door_2.prefab
+  uploadId: 140137

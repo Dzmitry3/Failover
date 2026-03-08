@@ -14,14 +14,22 @@ public class HealthComponent : MonoBehaviour
     public event Action<float, float> OnHealthChanged;
     public event Action OnDeath;
 
+    // фильтр, который решает, можно ли применять delta.
+    // Возвращает true = можно, false = блок.
+    public Func<float, bool> CanApplyDelta;
+
     private void Awake()
     {
         currentHealth = maxHealth;
-    } 
+    }
 
     public void ApplyDelta(float delta)
     {
         if (IsDead) return;
+
+        // решение на стороне объекта
+        if (CanApplyDelta != null && !CanApplyDelta(delta))
+            return;
 
         currentHealth = Mathf.Clamp(currentHealth + delta, 0f, maxHealth);
         OnHealthChanged?.Invoke(currentHealth, maxHealth);

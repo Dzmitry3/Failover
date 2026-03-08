@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 936449ba0fb4194428070d491e0084ed
+timeCreated: 1470869264
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 71881
+  packageName: Cyberpunk Environment Tileset
+  packageVersion: 1.0
+  assetPath: Assets/Cyberpunk_Tiles/Prefabs/tunnels_wallturn1.prefab
+  uploadId: 140137

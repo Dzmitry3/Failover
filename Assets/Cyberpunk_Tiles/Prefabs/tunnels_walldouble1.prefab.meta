@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7fd576837c16ea44680b3014fa965d7f
+timeCreated: 1470994527
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 71881
+  packageName: Cyberpunk Environment Tileset
+  packageVersion: 1.0
+  assetPath: Assets/Cyberpunk_Tiles/Prefabs/tunnels_walldouble1.prefab
+  uploadId: 140137

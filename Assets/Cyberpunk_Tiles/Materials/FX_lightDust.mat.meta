@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 65121702d155e5c4d8c0e07d83c99fac
+timeCreated: 1473757880
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 71881
+  packageName: Cyberpunk Environment Tileset
+  packageVersion: 1.0
+  assetPath: Assets/Cyberpunk_Tiles/Materials/FX_lightDust.mat
+  uploadId: 140137

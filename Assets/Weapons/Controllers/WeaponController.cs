@@ -8,13 +8,13 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private WeaponData weaponData;
 
     [Header("References")]
-    [SerializeField] private Camera aimCamera;         
-    [SerializeField] private Transform rotateRoot;     
-    [SerializeField] private Transform firePoint;     
-    [SerializeField] private HitScanShooter shooter;  
+    [SerializeField] private Camera aimCamera;
+    [SerializeField] private Transform rotateRoot;
+    [SerializeField] private Transform firePoint;
+    [SerializeField] private HitScanShooter shooter;
 
     [Header("Aiming")]
-    [SerializeField] private LayerMask aimGroundMask; 
+    [SerializeField] private LayerMask aimGroundMask;
     [SerializeField] private float maxAimRayDistance = 200f;
     [SerializeField] private bool rotateToAim = true;
 
@@ -57,27 +57,31 @@ public class WeaponController : MonoBehaviour
         shooter.SetRange(weaponData.range);
     }
 
-    
-    public void OnAttack(InputValue value)
+    // Assign this in PlayerInput -> Events -> Player -> Fire (CallbackContext)
+    public void OnFire(InputAction.CallbackContext ctx)
     {
-        bool pressed = value.isPressed;
-        
-        if (pressed && !_attackHeld)
+        if (ctx.started)
         {
             _attackHeld = true;
             FireOnce(ignoreRateLimit: true);
             return;
         }
-        
-        if (!pressed)
+
+        if (ctx.canceled)
+        {
             _attackHeld = false;
+        }
     }
 
     private void Update()
     {
-        if (!_attackHeld) return;
         if (weaponData == null || shooter == null) return;
-        
+
+        // Rotate independently from shooting so it works even when automatic=false.
+        if (rotateToAim && TryGetAimPoint(out var aimPoint))
+            RotateTowards(aimPoint);
+
+        if (!_attackHeld) return;
         if (!weaponData.automatic) return;
 
         FireOnce(ignoreRateLimit: false);
@@ -87,8 +91,6 @@ public class WeaponController : MonoBehaviour
     {
         if (weaponData == null || shooter == null) return;
         if (!TryGetAimPoint(out var aimPoint)) return;
-
-        if (rotateToAim) RotateTowards(aimPoint);
 
         if (!ignoreRateLimit)
         {
@@ -129,13 +131,13 @@ public class WeaponController : MonoBehaviour
 
         Vector2 screenPos = Mouse.current.position.ReadValue();
         Ray ray = aimCamera.ScreenPointToRay(screenPos);
-        
+
         if (Physics.Raycast(ray, out var hit, maxAimRayDistance, aimGroundMask, QueryTriggerInteraction.Ignore))
         {
             aimPoint = hit.point;
             return true;
         }
-        
+
         Plane plane = new Plane(Vector3.up, new Vector3(0f, rotateRoot.position.y, 0f));
         if (plane.Raycast(ray, out float enter))
         {
@@ -149,7 +151,6 @@ public class WeaponController : MonoBehaviour
     private void RotateTowards(Vector3 worldPoint)
     {
         if (!TryGetHorizontalDirection(rotateRoot.position, worldPoint, out var dir)) return;
-
         rotateRoot.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
     }
 }

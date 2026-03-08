@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 77a51a88b0b2096478e2b5b54b68ff02
+timeCreated: 1471875625
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 71881
+  packageName: Cyberpunk Environment Tileset
+  packageVersion: 1.0
+  assetPath: Assets/Cyberpunk_Tiles/Prefabs/tunnels_wallLight_3.prefab
+  uploadId: 140137

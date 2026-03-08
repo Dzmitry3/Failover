@@ -7,23 +7,26 @@ public class EnemyBase : MonoBehaviour
     [Header("References")]
     [SerializeField] private HealthComponent health;
     [SerializeField] private Collider[] collidersToDisable;
-    [SerializeField] private Behaviour[] behavioursToDisableOnDeath; 
+    [SerializeField] private Behaviour[] behavioursToDisableOnDeath;
 
     [Header("Death")]
-    [SerializeField] private bool destroyOnDeath = true;
+    [Tooltip("Если true — объект будет выключаться (возврат в пул). Destroy в пуле не используем.")]
+    [SerializeField] private bool despawnOnDeath = true;
 
-    public event Action<EnemyBase> OnDied; 
+    public event Action<EnemyBase> OnDied;
+
     public HealthComponent Health => health;
     public bool IsDead => health != null && health.IsDead;
+
+    private bool _subscribed;
 
     private void InitializeReferences()
     {
         if (health == null)
-            health = GetComponent<HealthComponent>();
+            health = GetComponentInChildren<HealthComponent>(true);
 
         if (collidersToDisable == null || collidersToDisable.Length == 0)
             collidersToDisable = GetComponentsInChildren<Collider>(true);
-
 
         if (behavioursToDisableOnDeath == null || behavioursToDisableOnDeath.Length == 0)
             behavioursToDisableOnDeath = GetComponentsInChildren<Behaviour>(true);
@@ -40,49 +43,90 @@ public class EnemyBase : MonoBehaviour
 
         if (health == null)
         {
-            Debug.LogError($"{nameof(EnemyBase)}: HealthComponent not found on the same GameObject.", this);
+            Debug.LogError($"{nameof(EnemyBase)}: HealthComponent not found in children.", this);
             enabled = false;
             return;
         }
+    }
+
+    private void OnEnable()
+    {
+        // Для пула: объект будет много раз включаться/выключаться.
+        SubscribeDeath();
+        SetAliveState(true);
+
+        // Если спавнер уже делает ResetHealth — это не обязательно,
+        // но безопасно гарантировать "живой" враг при активации.
+        if (health != null && health.IsDead)
+            health.ResetHealth();
+    }
+
+    private void OnDisable()
+    {
+        // При пуле объект чаще отключается, чем уничтожается.
+        UnsubscribeDeath();
+    }
+
+    private void SubscribeDeath()
+    {
+        if (_subscribed) return;
+        if (health == null) return;
 
         health.OnDeath += HandleDeath;
-
-
-        SetAliveState(true);
+        _subscribed = true;
     }
 
-    private void OnDestroy()
+    private void UnsubscribeDeath()
     {
-        if (health != null)
-            health.OnDeath -= HandleDeath;
+        if (!_subscribed) return;
+        if (health == null) return;
+
+        health.OnDeath -= HandleDeath;
+        _subscribed = false;
     }
 
-
+    // Вызывай из спавнера после выдачи из пула (опционально).
     public void Activate()
     {
         gameObject.SetActive(true);
-        health.ResetHealth();
+        if (health != null) health.ResetHealth();
         SetAliveState(true);
+    }
+
+    // Можно вызывать вручную, если нужен принудительный возврат в пул.
+    public void Deactivate()
+    {
+        SetAliveState(false);
+        gameObject.SetActive(false);
     }
 
     private void HandleDeath()
     {
+        // 1) Сначала выключаем функциональные компоненты (чтобы “мертвый” не наносил урон и не двигался).
         SetAliveState(false);
+
+        // 2) Событие для систем выше (статистика, спавнер, волны и т.п.)
         OnDied?.Invoke(this);
 
-        if (destroyOnDeath)
-            Destroy(gameObject);
-        else
+        // 3) Деспаун (возврат в пул)
+        if (despawnOnDeath)
+        {
             gameObject.SetActive(false);
+        }
+        else
+        {
+            // Если когда-нибудь понадобится другой сценарий — оставляем выключение как безопасный дефолт.
+            gameObject.SetActive(false);
+        }
     }
 
     private void SetAliveState(bool alive)
     {
-        SetComponentsState(collidersToDisable, alive);
+        SetCollidersState(collidersToDisable, alive);
         SetBehavioursState(behavioursToDisableOnDeath, alive);
     }
 
-    private void SetComponentsState(Collider[] components, bool enabled)
+    private void SetCollidersState(Collider[] components, bool enabled)
     {
         if (components == null) return;
 
@@ -99,8 +143,11 @@ public class EnemyBase : MonoBehaviour
         foreach (var b in behaviours)
         {
             if (b == null) continue;
-            if (b == this) continue;           // EnemyBase
-            if (b == health) continue;         // HealthComponent
+
+            // не отключаем "скелет"
+            if (b == this) continue;    // EnemyBase
+            if (b == health) continue;  // HealthComponent
+
             b.enabled = enabled;
         }
     }

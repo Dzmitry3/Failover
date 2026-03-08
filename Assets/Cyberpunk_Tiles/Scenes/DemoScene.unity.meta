@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a1fadff119557534c834dafc0367edb5
+timeCreated: 1474289131
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 71881
+  packageName: Cyberpunk Environment Tileset
+  packageVersion: 1.0
+  assetPath: Assets/Cyberpunk_Tiles/Scenes/DemoScene.unity
+  uploadId: 140137
