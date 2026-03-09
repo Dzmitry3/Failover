@@ -1,5 +1,8 @@
 public class HealthProcessor
 {
+    private const float CriticalDamageMultiplier = 2f;
+    private const float ArmorDamageMultiplier = 0.7f;
+
     public struct DamageContext
     {
         public bool isCritical;
@@ -35,10 +38,10 @@ public class HealthProcessor
         float dmg = baseDamage;
 
         if (context.isCritical)
-            dmg *= 2f;
+            dmg *= CriticalDamageMultiplier;
 
         if (context.hasArmor)
-            dmg *= 0.7f;
+            dmg *= ArmorDamageMultiplier;
 
         return dmg;
     }

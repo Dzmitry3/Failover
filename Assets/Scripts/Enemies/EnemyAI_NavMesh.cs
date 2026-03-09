@@ -5,6 +5,10 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class EnemyAI_NavMesh : MonoBehaviour
 {
+    private const float StopDistanceTolerance = 0.05f;
+    private const float MinDirectionSqrMagnitude = 0.0001f;
+    private const float FaceTargetTurnSpeed = 15f;
+
     [Header("Target")]
     [SerializeField] private Transform target;
     [SerializeField] private string targetTag = "Player";
@@ -47,7 +51,7 @@ public class EnemyAI_NavMesh : MonoBehaviour
         // доворот к игроку
         if (faceTargetOnStop && agent.hasPath && !agent.pathPending)
         {
-            if (agent.remainingDistance <= agent.stoppingDistance + 0.05f)
+            if (agent.remainingDistance <= agent.stoppingDistance + StopDistanceTolerance)
             {
                 FaceTargetXZ(target.position);
             }
@@ -59,9 +63,9 @@ public class EnemyAI_NavMesh : MonoBehaviour
         Vector3 dir = worldPos - transform.position;
         dir.y = 0f;
 
-        if (dir.sqrMagnitude < 0.0001f) return;
+        if (dir.sqrMagnitude < MinDirectionSqrMagnitude) return;
 
         Quaternion rot = Quaternion.LookRotation(dir, Vector3.up);
-        transform.rotation = Quaternion.Slerp(transform.rotation, rot, 15f * Time.deltaTime);
+        transform.rotation = Quaternion.Slerp(transform.rotation, rot, FaceTargetTurnSpeed * Time.deltaTime);
     }
 }

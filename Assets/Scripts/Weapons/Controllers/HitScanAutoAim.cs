@@ -3,6 +3,10 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class HitScanAutoAim : MonoBehaviour
 {
+    private const float DirectionEpsilonSqr = 0.0001f;
+    private const float MinForwardDistance = 0.01f;
+    private const float MinAssistRadius = 0.01f;
+
     [Header("Vertical Assist")]
     [SerializeField] private bool verticalAutoAim = true;
     [SerializeField] private float verticalAutoAimRadius = 1.25f;
@@ -23,7 +27,7 @@ public class HitScanAutoAim : MonoBehaviour
             return normalizedInput;
 
         Vector3 flatDir = new Vector3(normalizedInput.x, 0f, normalizedInput.z);
-        if (flatDir.sqrMagnitude < 0.0001f)
+        if (flatDir.sqrMagnitude < DirectionEpsilonSqr)
             return normalizedInput;
 
         flatDir.Normalize();
@@ -35,14 +39,14 @@ public class HitScanAutoAim : MonoBehaviour
         Vector3 targetFlat = new Vector3(toTarget.x, 0f, toTarget.z);
         Vector3 aimedFlatDir = flatDir;
 
-        if (horizontalAutoAim && targetFlat.sqrMagnitude > 0.0001f)
+        if (horizontalAutoAim && targetFlat.sqrMagnitude > DirectionEpsilonSqr)
         {
             float maxRadians = Mathf.Deg2Rad * Mathf.Max(0f, horizontalAutoAimMaxAngle);
             aimedFlatDir = Vector3.RotateTowards(flatDir, targetFlat.normalized, maxRadians, 0f).normalized;
         }
 
         float forwardDistance = Vector3.Dot(toTarget, aimedFlatDir);
-        if (forwardDistance <= 0.01f)
+        if (forwardDistance <= MinForwardDistance)
             return normalizedInput;
 
         Vector3 adjusted = aimedFlatDir * forwardDistance;
@@ -51,7 +55,7 @@ public class HitScanAutoAim : MonoBehaviour
         else
             adjusted += Vector3.up * (normalizedInput.y * forwardDistance);
 
-        if (adjusted.sqrMagnitude < 0.0001f)
+        if (adjusted.sqrMagnitude < DirectionEpsilonSqr)
             return normalizedInput;
 
         return adjusted.normalized;
@@ -67,7 +71,7 @@ public class HitScanAutoAim : MonoBehaviour
     {
         RaycastHit[] assistHits = Physics.SphereCastAll(
             origin,
-            Mathf.Max(0.01f, radius),
+            Mathf.Max(MinAssistRadius, radius),
             flatDirection,
             range,
             hitMask,

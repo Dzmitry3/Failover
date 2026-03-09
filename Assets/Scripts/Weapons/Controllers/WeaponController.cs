@@ -4,6 +4,9 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public class WeaponController : MonoBehaviour
 {
+    private const float MinFireRate = 0.01f;
+    private const float MinHorizontalDirectionSqrMagnitude = 0.0001f;
+
     [Header("Data")]
     [SerializeField] private WeaponData weaponData;
 
@@ -103,7 +106,7 @@ public class WeaponController : MonoBehaviour
 
     private void ConsumeFireCooldown()
     {
-        float rate = Mathf.Max(0.01f, weaponData.fireRate);
+        float rate = Mathf.Max(MinFireRate, weaponData.fireRate);
         _nextFireTime = Time.time + (1f / rate);
     }
 
@@ -111,7 +114,7 @@ public class WeaponController : MonoBehaviour
     {
         direction = to - from;
         direction.y = 0f;
-        return direction.sqrMagnitude >= 0.0001f;
+        return direction.sqrMagnitude >= MinHorizontalDirectionSqrMagnitude;
     }
 
     private void ShootTowards(Vector3 aimPoint)

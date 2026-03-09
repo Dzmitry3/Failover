@@ -3,6 +3,9 @@ using Zenject;
 
 public class HitScanShooter : MonoBehaviour
 {
+    private const float MinShootDirectionSqrMagnitude = 0.0001f;
+    private const float MinRange = 0.1f;
+
     [Header("References")]
     [SerializeField] private Transform firePoint;
 
@@ -48,7 +51,7 @@ public class HitScanShooter : MonoBehaviour
     {
         hit = default;
 
-        if (direction.sqrMagnitude < 0.0001f)
+        if (direction.sqrMagnitude < MinShootDirectionSqrMagnitude)
             return false;
 
         direction.Normalize();
@@ -119,5 +122,5 @@ public class HitScanShooter : MonoBehaviour
     }
 
     public void SetDamage(float newDamage) => damage = Mathf.Max(0f, newDamage);
-    public void SetRange(float newRange) => range = Mathf.Max(0.1f, newRange);
+    public void SetRange(float newRange) => range = Mathf.Max(MinRange, newRange);
 }
