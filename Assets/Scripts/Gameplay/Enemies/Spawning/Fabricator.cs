@@ -6,6 +6,7 @@ public class Fabricator : MonoBehaviour
 {
     [Header("State")]
     [SerializeField] private FabricatorState initialState = FabricatorState.Active;
+    [SerializeField, ReadOnlyInInspector, InspectorName("Current State")] private FabricatorState debugCurrentState;
 
     private FabricatorState currentState;
 
@@ -39,6 +40,15 @@ public class Fabricator : MonoBehaviour
     private void Awake()
     {
         currentState = initialState;
+        SyncDebugState();
+    }
+
+    private void OnValidate()
+    {
+        if (Application.isPlaying)
+            return;
+
+        debugCurrentState = initialState;
     }
 
     public void SetActive() => TrySetState(FabricatorState.Active);
@@ -60,8 +70,14 @@ public class Fabricator : MonoBehaviour
         }
 
         currentState = newState;
+        SyncDebugState();
         StateChanged?.Invoke(currentState);
 
         Debug.Log($"{nameof(Fabricator)} state changed to {currentState}.", this);
+    }
+
+    private void SyncDebugState()
+    {
+        debugCurrentState = currentState;
     }
 }

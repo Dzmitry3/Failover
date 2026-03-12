@@ -7794,6 +7794,7 @@ GameObject:
   - component: {fileID: 228255943}
   - component: {fileID: 228255942}
   - component: {fileID: 228255941}
+  - component: {fileID: 228255945}
   m_Layer: 0
   m_Name: LinkageNode
   m_TagString: Untagged
@@ -7894,6 +7895,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &228255945
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 228255940}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa1144cc0f2f4364b0b31a94f43d25f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LinkageNode
+  fabricator: {fileID: 772496353}
 --- !u!1001 &233141854
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -25893,6 +25907,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Fabricator
   initialState: 0
+  debugCurrentState: 0
 --- !u!65 &772496354
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -35482,6 +35497,45 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 494224, guid: 5e58d75ca9f2ffc409486e9f53ec3e70, type: 3}
   m_PrefabInstance: {fileID: 1066977467}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1070822186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1070822188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d1ef2bd8f6d45f9af6fc3a3e896031d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LinkageNodeInteractionUI
+  promptText: "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 F \u0434\u043B\u044F \u0432\u0437\u043B\u043E\u043C\u0430
+    \u0443\u0437\u043B\u0430"
+  promptWidth: 520
+  promptBottomOffset: 110
+  windowTitle: "\u0412\u0437\u043B\u043E\u043C LinkageNode"
+  windowWidth: 540
+  windowHeight: 220
+  labelFontSize: 22
+  sequenceFontSize: 34
+--- !u!114 &1070822187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1070822188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e0ebf90c16243f090ff56d4fccd3592, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LinkageNodeInteractionController
+  linkageNodeName: LinkageNode
+  interactionDistance: 3
+  linkageNode: {fileID: 228255945}
+  sequenceLength: 4
+  retryDelaySeconds: 2
+  playerController: {fileID: 1070822191}
 --- !u!1 &1070822188
 GameObject:
   m_ObjectHideFlags: 0
@@ -35491,6 +35545,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1070822194}
+  - component: {fileID: 1070822187}
+  - component: {fileID: 1070822186}
   - component: {fileID: 1070822193}
   - component: {fileID: 1070822192}
   - component: {fileID: 1070822191}
@@ -52023,6 +52079,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1627811474}
   - component: {fileID: 1627811473}
+  - component: {fileID: 1627811475}
   m_Layer: 0
   m_Name: WaveController
   m_TagString: Untagged
@@ -52044,21 +52101,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaveController
   fabricator: {fileID: 772496353}
   autoFindFabricator: 1
-  enemyPrefab: {fileID: 6329699797917692862, guid: 6d1a716c629004345a5da815b6b0d147, type: 3}
+  enemyPool: {fileID: 1627811475}
   spawnPoints:
   - {fileID: 1082808555}
   waves:
-  - enemiesToSpawn: 20
-    spawnInterval: 2
+  - enemiesToSpawn: 30
+    spawnInterval: 1
+    maxAliveOverride: 0
+    startDelay: 0
+    waitUntilCleared: 1
+  - enemiesToSpawn: 30
+    spawnInterval: 1
     maxAliveOverride: 0
     startDelay: 0
     waitUntilCleared: 1
   timeBetweenWaves: 10
   startOnStart: 1
   loop: 1
-  globalMaxAlive: 20
+  globalMaxAlive: 30
   prewarmCount: 0
-  expandPoolIfEmpty: 1
   navMeshSampleRadius: 2
 --- !u!4 &1627811474
 Transform:
@@ -52075,6 +52136,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1627811475
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1627811472}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8b92c582168b6948b84d6e36eab472b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyPool
+  enemyPrefab: {fileID: 6329699797917692862, guid: 6d1a716c629004345a5da815b6b0d147, type: 3}
+  expandPoolIfEmpty: 1
 --- !u!1001 &1633613478
 PrefabInstance:
   m_ObjectHideFlags: 0
