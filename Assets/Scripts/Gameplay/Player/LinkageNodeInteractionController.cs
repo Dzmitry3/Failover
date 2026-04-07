@@ -1,293 +1,272 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(PlayerController))]
+[RequireComponent(typeof(LinkageMiniGame))]
 public class LinkageNodeInteractionController : MonoBehaviour
 {
+    private const float MinNavigateInputSqrMagnitude = 0.25f;
+
     [Header("Interaction")]
-    [SerializeField] private string linkageNodeName = "LinkageNode";
     [SerializeField] private float interactionDistance = 3f;
     [SerializeField] private LinkageNode linkageNode;
+    [SerializeField] private Fabricator fabricator;
+    [SerializeField] private LinkageNode requiredLinkageNode;
+    [SerializeField] private LinkageMiniGame miniGame;
 
-    [Header("Mini-game")]
-    [SerializeField] private int sequenceLength = 4;
-    [SerializeField] private float retryDelaySeconds = 2f;
+    public bool IsNearNode { get; private set; }
+    public bool CanRenderUi => CanShowUi && IsNearNode;
+    public bool ShowPrompt => CanRenderUi && !miniGame.IsRunning;
+    public bool ShowWindow => CanRenderUi && miniGame.IsRunning;
+    public string SequenceText => miniGame.SequenceText;
+    public string ProgressText => miniGame.ProgressText;
+    public string StatusMessage => miniGame.StatusMessage;
+    public string PromptText => IsFabricatorInteraction
+        ? (IsPrerequisiteMet ? "Нажмите F, чтобы захватить Fabricator" : "Сначала захватите узел связи")
+        : "Нажмите F для взлома узла";
+    public string WindowTitle => IsFabricatorInteraction ? "Взлом Fabricator" : "Взлом LinkageNode";
 
-    [Header("References")]
-    [SerializeField] private PlayerController playerController;
+    private bool IsFabricatorInteraction => fabricator != null;
+    private bool IsPrerequisiteMet => !IsFabricatorInteraction || requiredLinkageNode == null || requiredLinkageNode.IsCaptured;
+    private bool CanInteract => IsFabricatorInteraction
+        ? fabricator.CurrentState != FabricatorState.Captured &&
+          fabricator.CurrentState != FabricatorState.Destroyed &&
+          IsPrerequisiteMet
+        : linkageNode != null && linkageNode.CanInteract;
+    private bool CanShowUi => IsFabricatorInteraction
+        ? fabricator != null &&
+          fabricator.CurrentState != FabricatorState.Captured &&
+          fabricator.CurrentState != FabricatorState.Destroyed
+        : linkageNode != null && linkageNode.CanInteract;
+    private PlayerController PlayerController => linkageNode != null
+        ? linkageNode.PlayerController
+        : GetTargetPlayerController();
+    private PlayerInput PlayerInput => GetTargetPlayerInput();
 
-    private ArrowDirection[] sequence = System.Array.Empty<ArrowDirection>();
-    private int currentInputIndex;
-    private string statusMessage = string.Empty;
-    private bool isNearNode;
-    private bool isMiniGameActive;
-    private bool isCooldownActive;
-    private Coroutine retryCoroutine;
-
-    public bool IsNearNode => isNearNode;
-    public bool IsMiniGameActive => isMiniGameActive;
-    public bool IsCooldownActive => isCooldownActive;
-    public int CurrentInputIndex => currentInputIndex;
-    public int SequenceLength => sequence.Length;
-    public string StatusMessage => statusMessage;
-    public bool CanRenderUi => CanInteract && isNearNode;
-    public bool ShowPrompt => CanRenderUi && !isMiniGameActive && !isCooldownActive;
-    public bool ShowWindow => CanRenderUi && (isMiniGameActive || isCooldownActive);
-
-    public string SequenceText
-    {
-        get
-        {
-            if (sequence.Length == 0)
-                return string.Empty;
-
-            string text = string.Empty;
-            for (int i = 0; i < sequence.Length; i++)
-            {
-                if (i > 0)
-                    text += "  ";
-
-                text += DirectionToSymbol(sequence[i]);
-            }
-
-            return text;
-        }
-    }
-
-    public string ProgressText => isCooldownActive
-        ? "\u041e\u0436\u0438\u0434\u0430\u043d\u0438\u0435 \u043f\u0435\u0440\u0435\u0434 \u043f\u043e\u0432\u0442\u043e\u0440\u043e\u043c..."
-        : $"\u0412\u0432\u0435\u0434\u0435\u043d\u043e: {currentInputIndex}/{sequence.Length}";
-
-    private bool CanInteract => linkageNode != null && !linkageNode.IsCaptured;
+    private InputAction interactAction;
+    private InputAction miniGameNavigateAction;
+    private InputAction moveAction;
+    private Vector2 lastNavigateInput;
+    private bool moveActionWasEnabled;
 
     private void Awake()
     {
-        if (playerController == null)
-            playerController = GetComponent<PlayerController>();
-
         if (linkageNode == null)
-        {
-            GameObject linkageNodeObject = GameObject.Find(linkageNodeName);
-            if (linkageNodeObject != null)
-                linkageNode = linkageNodeObject.GetComponent<LinkageNode>();
-        }
+            linkageNode = GetComponent<LinkageNode>();
+
+        if (fabricator == null)
+            fabricator = GetComponent<Fabricator>();
+
+        if (miniGame == null)
+            miniGame = GetComponent<LinkageMiniGame>();
+
+        ResolveInputActions();
+    }
+
+    private void OnEnable()
+    {
+        ResolveInputActions();
+        lastNavigateInput = Vector2.zero;
     }
 
     private void Update()
     {
-        if (!CanInteract)
+        if (!CanShowUi)
         {
-            ResetInteraction(clearStatusMessage: true);
+            EndInteraction(clearStatusMessage: true);
             return;
         }
 
-        isNearNode = IsWithinInteractionRange();
-        if (!isNearNode)
+        IsNearNode = IsWithinInteractionRange();
+        if (!IsNearNode)
         {
-            ResetInteraction(clearStatusMessage: true);
+            EndInteraction(clearStatusMessage: true);
             return;
         }
 
-        if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
+        if (WasInteractPressedThisFrame())
         {
-            if (isMiniGameActive || isCooldownActive)
+            if (miniGame.IsRunning)
             {
-                CloseMiniGameWindow();
+                CloseMiniGame();
                 return;
             }
 
-            StartMiniGame();
+            if (!CanInteract)
+                return;
+
+            OpenMiniGame();
             return;
         }
 
-        if (!isMiniGameActive)
+        if (!miniGame.IsActive)
             return;
 
-        if (TryGetPressedArrow(out ArrowDirection pressedDirection))
-            ProcessArrowInput(pressedDirection);
+        if (!TryGetNavigatePressedThisFrame(out Vector2 navigateInput))
+        {
+            if (miniGame.IsCooldownActive)
+                SetPlayerMovementLocked(false);
+
+            return;
+        }
+
+        if (!miniGame.TryConsumeArrowInput(navigateInput, out bool completed))
+            return;
+
+        if (completed)
+            CompleteMiniGame();
     }
 
     private void OnDisable()
     {
-        ResetInteraction(clearStatusMessage: false);
+        EndInteraction(clearStatusMessage: false);
     }
 
     private bool IsWithinInteractionRange()
     {
-        return Vector3.Distance(transform.position, linkageNode.transform.position) <= interactionDistance;
-    }
-
-    private void StartMiniGame()
-    {
-        if (retryCoroutine != null)
-        {
-            StopCoroutine(retryCoroutine);
-            retryCoroutine = null;
-        }
-
-        isMiniGameActive = true;
-        isCooldownActive = false;
-        currentInputIndex = 0;
-        statusMessage = string.Empty;
-
-        int resolvedLength = Mathf.Max(1, sequenceLength);
-        sequence = new ArrowDirection[resolvedLength];
-        for (int i = 0; i < sequence.Length; i++)
-            sequence[i] = (ArrowDirection)Random.Range(0, 4);
-
-        if (playerController != null)
-            playerController.SetMovementLocked(true);
-    }
-
-    private bool TryGetPressedArrow(out ArrowDirection pressedDirection)
-    {
-        pressedDirection = ArrowDirection.Up;
-        if (Keyboard.current == null)
+        PlayerController playerController = PlayerController;
+        if (playerController == null)
             return false;
 
-        if (Keyboard.current.upArrowKey.wasPressedThisFrame)
-        {
-            pressedDirection = ArrowDirection.Up;
-            return true;
-        }
-
-        if (Keyboard.current.downArrowKey.wasPressedThisFrame)
-        {
-            pressedDirection = ArrowDirection.Down;
-            return true;
-        }
-
-        if (Keyboard.current.leftArrowKey.wasPressedThisFrame)
-        {
-            pressedDirection = ArrowDirection.Left;
-            return true;
-        }
-
-        if (Keyboard.current.rightArrowKey.wasPressedThisFrame)
-        {
-            pressedDirection = ArrowDirection.Right;
-            return true;
-        }
-
-        return false;
+        return Vector3.Distance(playerController.transform.position, transform.position) <= interactionDistance;
     }
 
-    private void ProcessArrowInput(ArrowDirection pressedDirection)
+    private void OpenMiniGame()
     {
-        if (sequence.Length == 0)
-            return;
-
-        if (pressedDirection == sequence[currentInputIndex])
-        {
-            currentInputIndex++;
-            if (currentInputIndex >= sequence.Length)
-                CompleteMiniGame();
-
-            return;
-        }
-
-        isMiniGameActive = false;
-        isCooldownActive = true;
-        currentInputIndex = 0;
-        statusMessage = "\u041d\u0435\u0432\u0435\u0440\u043d\u0430\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c. \u041f\u043e\u0432\u0442\u043e\u0440 \u0447\u0435\u0440\u0435\u0437 2 \u0441\u0435\u043a\u0443\u043d\u0434\u044b...";
-
-        if (playerController != null)
-            playerController.SetMovementLocked(false);
-
-        if (retryCoroutine != null)
-            StopCoroutine(retryCoroutine);
-
-        retryCoroutine = StartCoroutine(RestartMiniGameAfterDelay());
-    }
-
-    private IEnumerator RestartMiniGameAfterDelay()
-    {
-        yield return new WaitForSeconds(retryDelaySeconds);
-        retryCoroutine = null;
-
-        if (!CanInteract || !isNearNode)
-        {
-            ResetInteraction(clearStatusMessage: true);
-            yield break;
-        }
-
-        isCooldownActive = false;
-        isMiniGameActive = true;
-        currentInputIndex = 0;
-        statusMessage = string.Empty;
-
-        if (playerController != null)
-            playerController.SetMovementLocked(true);
+        miniGame.StartGame();
+        SetPlayerMovementLocked(true);
+        SetMovementInputEnabled(false);
     }
 
     private void CompleteMiniGame()
     {
-        bool captured = linkageNode.TryCapture();
-
-        isMiniGameActive = false;
-        isCooldownActive = false;
-        currentInputIndex = 0;
-        statusMessage = captured
-            ? "\u0417\u0430\u0445\u0432\u0430\u0442 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d."
-            : "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0445\u0432\u0430\u0442\u0438\u0442\u044c Fabricator.";
-
-        if (playerController != null)
-            playerController.SetMovementLocked(false);
+        bool captured = TryCaptureTarget();
+        miniGame.SetSuccessMessage(captured ? "Захват выполнен." : "Захват не выполнен.");
+        FinishMiniGameSession();
     }
 
-    private void CloseMiniGameWindow()
+    private void CloseMiniGame()
     {
-        if (retryCoroutine != null)
-        {
-            StopCoroutine(retryCoroutine);
-            retryCoroutine = null;
-        }
-
-        isMiniGameActive = false;
-        isCooldownActive = false;
-        currentInputIndex = 0;
-        statusMessage = string.Empty;
-
-        if (playerController != null)
-            playerController.SetMovementLocked(false);
+        miniGame.Close();
+        FinishMiniGameSession();
     }
 
-    private void ResetInteraction(bool clearStatusMessage)
+    private void EndInteraction(bool clearStatusMessage)
     {
-        if (retryCoroutine != null)
-        {
-            StopCoroutine(retryCoroutine);
-            retryCoroutine = null;
-        }
-
-        isNearNode = false;
-        isMiniGameActive = false;
-        isCooldownActive = false;
-        currentInputIndex = 0;
-
-        if (clearStatusMessage)
-            statusMessage = string.Empty;
-
-        if (playerController != null)
-            playerController.SetMovementLocked(false);
+        IsNearNode = false;
+        miniGame.ResetState(clearStatusMessage);
+        FinishMiniGameSession();
     }
 
-    private static string DirectionToSymbol(ArrowDirection direction)
+    private void FinishMiniGameSession()
     {
-        switch (direction)
+        SetPlayerMovementLocked(false);
+        SetMovementInputEnabled(true);
+    }
+
+    private void SetPlayerMovementLocked(bool locked)
+    {
+        if (PlayerController != null)
+            PlayerController.SetMovementLocked(locked);
+    }
+
+    private void ResolveInputActions()
+    {
+        PlayerInput playerInput = PlayerInput;
+        interactAction = playerInput?.actions?.FindAction("Player/Interact", throwIfNotFound: false);
+        miniGameNavigateAction = playerInput?.actions?.FindAction("Player/MiniGameNavigate", throwIfNotFound: false);
+        moveAction = playerInput?.actions?.FindAction("Player/Move", throwIfNotFound: false);
+    }
+
+    private bool WasInteractPressedThisFrame()
+    {
+        if (interactAction == null)
+            ResolveInputActions();
+
+        return interactAction != null && interactAction.WasPressedThisFrame();
+    }
+
+    private bool TryGetNavigatePressedThisFrame(out Vector2 navigateInput)
+    {
+        navigateInput = Vector2.zero;
+
+        if (miniGameNavigateAction == null)
+            ResolveInputActions();
+
+        if (miniGameNavigateAction == null)
+            return false;
+
+        Vector2 currentInput = miniGameNavigateAction.ReadValue<Vector2>();
+        if (currentInput.sqrMagnitude < MinNavigateInputSqrMagnitude)
         {
-            case ArrowDirection.Up:
-                return "\u2191";
-            case ArrowDirection.Down:
-                return "\u2193";
-            case ArrowDirection.Left:
-                return "\u2190";
-            case ArrowDirection.Right:
-                return "\u2192";
-            default:
-                return "?";
+            lastNavigateInput = Vector2.zero;
+            return false;
         }
+
+        if (lastNavigateInput.sqrMagnitude >= MinNavigateInputSqrMagnitude &&
+            Vector2.Dot(lastNavigateInput.normalized, currentInput.normalized) > 0.95f)
+        {
+            return false;
+        }
+
+        lastNavigateInput = currentInput;
+        navigateInput = currentInput;
+        return true;
+    }
+
+    public void ConfigureFabricatorInteraction(Fabricator targetFabricator, LinkageNode prerequisiteNode)
+    {
+        fabricator = targetFabricator;
+        requiredLinkageNode = prerequisiteNode;
+        linkageNode = null;
+        ResolveInputActions();
+    }
+
+    private bool TryCaptureTarget()
+    {
+        if (IsFabricatorInteraction)
+        {
+            if (!IsPrerequisiteMet || fabricator == null)
+                return false;
+
+            fabricator.SetCaptured();
+            return fabricator.CurrentState == FabricatorState.Captured;
+        }
+
+        return linkageNode != null && linkageNode.TryCapture();
+    }
+
+    private PlayerController GetTargetPlayerController()
+    {
+        GameObject player = requiredLinkageNode != null ? requiredLinkageNode.Player : GameObject.FindGameObjectWithTag("Player");
+        return player != null ? player.GetComponent<PlayerController>() : null;
+    }
+
+    private PlayerInput GetTargetPlayerInput()
+    {
+        PlayerController playerController = PlayerController;
+        return playerController != null ? playerController.GetComponent<PlayerInput>() : null;
+    }
+
+    private void SetMovementInputEnabled(bool enabled)
+    {
+        if (moveAction == null)
+            ResolveInputActions();
+
+        if (moveAction == null)
+            return;
+
+        if (!enabled)
+        {
+            moveActionWasEnabled = moveAction.enabled;
+            if (moveActionWasEnabled)
+                moveAction.Disable();
+            return;
+        }
+
+        if (moveActionWasEnabled && !moveAction.enabled)
+            moveAction.Enable();
+
+        moveActionWasEnabled = false;
     }
 }

@@ -11,13 +11,10 @@ public class WeaponData : ScriptableObject
 
     [Header("Combat")]
     public float damage = 10f;
-    public float fireRate = 6f;     // выстрелов в секунду
+    public float fireRate = 6f;     // shots per second
     public float range = 30f;
 
     [Header("Behaviour")]
-    public bool automatic = true;   // true = держишь → стреляет
-    // false = только одиночные
-
-    [Header("Debug")]
-    public Color debugRayColor = Color.yellow;
+    public bool automatic = true;   // true = hold to keep firing
+    // false = single-shot only
 }

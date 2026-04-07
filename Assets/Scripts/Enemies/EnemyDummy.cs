@@ -20,6 +20,15 @@ public class EnemyDummy : MonoBehaviour
     {
         InitializeReferences();
 
+        if (GetComponent<EnemyBase>() != null)
+        {
+            Debug.LogError(
+                $"{nameof(EnemyDummy)} should not be used together with {nameof(EnemyBase)}. Remove {nameof(EnemyDummy)} from pooled enemy prefabs.",
+                this);
+            enabled = false;
+            return;
+        }
+
         if (health == null)
         {
             Debug.LogError($"{nameof(EnemyDummy)}: HealthComponent not found on the same GameObject.", this);

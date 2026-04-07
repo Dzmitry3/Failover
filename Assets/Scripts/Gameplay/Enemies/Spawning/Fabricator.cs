@@ -6,7 +6,7 @@ public class Fabricator : MonoBehaviour
 {
     [Header("State")]
     [SerializeField] private FabricatorState initialState = FabricatorState.Active;
-    [SerializeField, ReadOnlyInInspector, InspectorName("Current State")] private FabricatorState debugCurrentState;
+    [SerializeField, InspectorName("Current State")] private FabricatorState debugCurrentState;
 
     private FabricatorState currentState;
 
@@ -51,10 +51,7 @@ public class Fabricator : MonoBehaviour
         debugCurrentState = initialState;
     }
 
-    public void SetActive() => TrySetState(FabricatorState.Active);
-    public void SetDisabled() => TrySetState(FabricatorState.Disabled);
     public void SetCaptured() => TrySetState(FabricatorState.Captured);
-    public void SetDestroyed() => TrySetState(FabricatorState.Destroyed);
 
     private void TrySetState(FabricatorState newState)
     {

@@ -3,12 +3,14 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class HitScanAutoAim : MonoBehaviour
 {
+    private const string AimPointName = "AimPoint";
     private const float DirectionEpsilonSqr = 0.0001f;
     private const float MinForwardDistance = 0.01f;
     private const float MinAssistRadius = 0.01f;
+    private const float TargetPointHeightFactor = 0f;
 
     [Header("Vertical Assist")]
-    [SerializeField] private bool verticalAutoAim = true;
+    [SerializeField] private bool verticalAutoAim = false;
     [SerializeField] private float verticalAutoAimRadius = 1.25f;
 
     [Header("Horizontal Assist")]
@@ -35,30 +37,31 @@ public class HitScanAutoAim : MonoBehaviour
         if (!TryGetBestTargetHit(origin, flatDir, range, hitMask, verticalAutoAimRadius, out RaycastHit bestHit))
             return normalizedInput;
 
-        Vector3 toTarget = bestHit.collider.bounds.center - origin;
+        HealthComponent bestHealth = bestHit.collider != null
+            ? bestHit.collider.GetComponentInParent<HealthComponent>()
+            : null;
+        bool hasAimPoint = TryGetAimPoint(bestHealth, out Vector3 aimPoint);
+        Vector3 targetPoint = hasAimPoint ? aimPoint : GetFallbackTargetPoint(bestHit);
+        Vector3 toTarget = targetPoint - origin;
         Vector3 targetFlat = new Vector3(toTarget.x, 0f, toTarget.z);
-        Vector3 aimedFlatDir = flatDir;
+        if (targetFlat.sqrMagnitude < DirectionEpsilonSqr)
+            return normalizedInput;
 
-        if (horizontalAutoAim && targetFlat.sqrMagnitude > DirectionEpsilonSqr)
+        if (horizontalAutoAim)
         {
-            float maxRadians = Mathf.Deg2Rad * Mathf.Max(0f, horizontalAutoAimMaxAngle);
-            aimedFlatDir = Vector3.RotateTowards(flatDir, targetFlat.normalized, maxRadians, 0f).normalized;
+            float maxAngle = Mathf.Max(0f, horizontalAutoAimMaxAngle);
+            float flatAngle = Vector3.Angle(flatDir, targetFlat.normalized);
+            if (flatAngle > maxAngle)
+                return normalizedInput;
         }
 
-        float forwardDistance = Vector3.Dot(toTarget, aimedFlatDir);
-        if (forwardDistance <= MinForwardDistance)
+        if (!verticalAutoAim && !hasAimPoint)
+            toTarget.y = 0f;
+
+        if (toTarget.sqrMagnitude < DirectionEpsilonSqr)
             return normalizedInput;
 
-        Vector3 adjusted = aimedFlatDir * forwardDistance;
-        if (verticalAutoAim)
-            adjusted += Vector3.up * toTarget.y;
-        else
-            adjusted += Vector3.up * (normalizedInput.y * forwardDistance);
-
-        if (adjusted.sqrMagnitude < DirectionEpsilonSqr)
-            return normalizedInput;
-
-        return adjusted.normalized;
+        return toTarget.normalized;
     }
 
     private bool TryGetBestTargetHit(
@@ -88,6 +91,12 @@ public class HitScanAutoAim : MonoBehaviour
             if (health == null || health.IsDead)
                 continue;
 
+            Vector3 targetPoint = TryGetAimPoint(health, out Vector3 aimPoint)
+                ? aimPoint
+                : GetFallbackTargetPoint(candidate);
+            if (!HasLineOfSight(origin, targetPoint, health, range, hitMask))
+                continue;
+
             if (candidate.distance >= bestDistance)
                 continue;
 
@@ -97,5 +106,64 @@ public class HitScanAutoAim : MonoBehaviour
         }
 
         return found;
+    }
+
+    private static bool TryGetAimPoint(HealthComponent health, out Vector3 aimPoint)
+    {
+        Transform aimPointTransform = FindAimPoint(health);
+        if (aimPointTransform != null)
+        {
+            aimPoint = aimPointTransform.position;
+            return true;
+        }
+
+        aimPoint = default;
+        return false;
+    }
+
+    private static Vector3 GetFallbackTargetPoint(RaycastHit hit)
+    {
+        Collider collider = hit.collider;
+        if (collider == null)
+            return hit.point;
+
+        Bounds bounds = collider.bounds;
+        return bounds.center + Vector3.up * (bounds.extents.y * TargetPointHeightFactor);
+    }
+
+    private static Transform FindAimPoint(HealthComponent health)
+    {
+        if (health == null)
+            return null;
+
+        Transform[] transforms = health.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform candidate = transforms[i];
+            if (candidate.name == AimPointName)
+                return candidate;
+        }
+
+        return null;
+    }
+
+    private static bool HasLineOfSight(
+        Vector3 origin,
+        Vector3 targetPoint,
+        HealthComponent targetHealth,
+        float maxRange,
+        LayerMask hitMask)
+    {
+        Vector3 toTarget = targetPoint - origin;
+        float distance = toTarget.magnitude;
+        if (distance <= MinForwardDistance || distance > maxRange)
+            return false;
+
+        Vector3 direction = toTarget / distance;
+        if (!Physics.Raycast(origin, direction, out RaycastHit blockingHit, distance, hitMask, QueryTriggerInteraction.Ignore))
+            return false;
+
+        HealthComponent hitHealth = blockingHit.collider.GetComponentInParent<HealthComponent>();
+        return hitHealth == targetHealth;
     }
 }

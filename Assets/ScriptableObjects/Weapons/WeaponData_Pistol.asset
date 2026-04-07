@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: WeaponData_Pistol
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponName: Pistol
-  damage: 5
+  damage: 50
   fireRate: 6
   range: 30
   automatic: 1

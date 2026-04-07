@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -10,15 +11,18 @@ public class EnemyBase : MonoBehaviour
     [SerializeField] private Behaviour[] behavioursToDisableOnDeath;
 
     [Header("Death")]
-    [Tooltip("Если true — объект будет выключаться (возврат в пул). Destroy в пуле не используем.")]
+    [Tooltip("If true, the object is disabled on death instead of being destroyed.")]
     [SerializeField] private bool despawnOnDeath = true;
+    [SerializeField, Min(0f)] private float despawnDelaySeconds;
 
-    public event Action<EnemyBase> OnDied;
+    public event Action<EnemyBase, bool> AliveStateChanged;
 
     public HealthComponent Health => health;
     public bool IsDead => health != null && health.IsDead;
 
     private bool _subscribed;
+    private Coroutine _despawnCoroutine;
+    private bool isAlive;
 
     private void InitializeReferences()
     {
@@ -45,32 +49,26 @@ public class EnemyBase : MonoBehaviour
         {
             Debug.LogError($"{nameof(EnemyBase)}: HealthComponent not found in children.", this);
             enabled = false;
-            return;
         }
     }
 
     private void OnEnable()
     {
-        // Для пула: объект будет много раз включаться/выключаться.
         SubscribeDeath();
-        SetAliveState(true);
-
-        // Если спавнер уже делает ResetHealth — это не обязательно,
-        // но безопасно гарантировать "живой" враг при активации.
-        if (health != null && health.IsDead)
-            health.ResetHealth();
+        PrepareForSpawn();
     }
 
     private void OnDisable()
     {
-        // При пуле объект чаще отключается, чем уничтожается.
+        StopDespawnCoroutine();
+        SetAlive(false);
         UnsubscribeDeath();
     }
 
     private void SubscribeDeath()
     {
-        if (_subscribed) return;
-        if (health == null) return;
+        if (_subscribed || health == null)
+            return;
 
         health.OnDeath += HandleDeath;
         _subscribed = true;
@@ -78,46 +76,58 @@ public class EnemyBase : MonoBehaviour
 
     private void UnsubscribeDeath()
     {
-        if (!_subscribed) return;
-        if (health == null) return;
+        if (!_subscribed || health == null)
+            return;
 
         health.OnDeath -= HandleDeath;
         _subscribed = false;
     }
 
-    // Вызывай из спавнера после выдачи из пула (опционально).
-    public void Activate()
+    public void PrepareForSpawn()
     {
-        gameObject.SetActive(true);
-        if (health != null) health.ResetHealth();
-        SetAliveState(true);
-    }
+        StopDespawnCoroutine();
+        if (health != null)
+            health.ResetHealth();
 
-    // Можно вызывать вручную, если нужен принудительный возврат в пул.
-    public void Deactivate()
-    {
-        SetAliveState(false);
-        gameObject.SetActive(false);
+        SetAliveState(true);
+        SetAlive(true);
     }
 
     private void HandleDeath()
     {
-        // 1) Сначала выключаем функциональные компоненты (чтобы “мертвый” не наносил урон и не двигался).
         SetAliveState(false);
+        SetAlive(false);
 
-        // 2) Событие для систем выше (статистика, спавнер, волны и т.п.)
-        OnDied?.Invoke(this);
+        if (!despawnOnDeath)
+            return;
 
-        // 3) Деспаун (возврат в пул)
-        if (despawnOnDeath)
+        if (despawnDelaySeconds > 0f && gameObject.activeInHierarchy)
         {
-            gameObject.SetActive(false);
+            StopDespawnCoroutine();
+            _despawnCoroutine = StartCoroutine(DespawnAfterDelay());
+            return;
         }
-        else
-        {
-            // Если когда-нибудь понадобится другой сценарий — оставляем выключение как безопасный дефолт.
+
+        gameObject.SetActive(false);
+    }
+
+    private IEnumerator DespawnAfterDelay()
+    {
+        yield return new WaitForSeconds(despawnDelaySeconds);
+
+        _despawnCoroutine = null;
+
+        if (gameObject.activeSelf)
             gameObject.SetActive(false);
-        }
+    }
+
+    private void StopDespawnCoroutine()
+    {
+        if (_despawnCoroutine == null)
+            return;
+
+        StopCoroutine(_despawnCoroutine);
+        _despawnCoroutine = null;
     }
 
     private void SetAliveState(bool alive)
@@ -126,29 +136,38 @@ public class EnemyBase : MonoBehaviour
         SetBehavioursState(behavioursToDisableOnDeath, alive);
     }
 
-    private void SetCollidersState(Collider[] components, bool enabled)
+    private static void SetCollidersState(Collider[] components, bool enabled)
     {
-        if (components == null) return;
+        if (components == null)
+            return;
 
-        foreach (var c in components)
+        foreach (var component in components)
         {
-            if (c != null) c.enabled = enabled;
+            if (component != null)
+                component.enabled = enabled;
         }
     }
 
     private void SetBehavioursState(Behaviour[] behaviours, bool enabled)
     {
-        if (behaviours == null) return;
+        if (behaviours == null)
+            return;
 
-        foreach (var b in behaviours)
+        foreach (var behaviour in behaviours)
         {
-            if (b == null) continue;
+            if (behaviour == null || behaviour == this || behaviour == health)
+                continue;
 
-            // не отключаем "скелет"
-            if (b == this) continue;    // EnemyBase
-            if (b == health) continue;  // HealthComponent
-
-            b.enabled = enabled;
+            behaviour.enabled = enabled;
         }
+    }
+
+    private void SetAlive(bool alive)
+    {
+        if (isAlive == alive)
+            return;
+
+        isAlive = alive;
+        AliveStateChanged?.Invoke(this, isAlive);
     }
 }

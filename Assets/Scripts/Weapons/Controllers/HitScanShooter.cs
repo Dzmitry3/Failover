@@ -22,12 +22,11 @@ public class HitScanShooter : MonoBehaviour
     
     private HealthProcessor _healthProcessor;
     private bool _missingProcessorWarned;
+
     [Inject]
     public void Construct(HealthProcessor healthProcessor)
     {
         _healthProcessor = healthProcessor;
-        //Debug.Log("HealthProcessor injected: " + (_healthProcessor != null));
-
     }
 
     private void InitializeReferences()
@@ -51,14 +50,8 @@ public class HitScanShooter : MonoBehaviour
     {
         hit = default;
 
-        if (direction.sqrMagnitude < MinShootDirectionSqrMagnitude)
+        if (!TryGetShotDirection(direction, out Vector3 origin, out Vector3 shotDirection))
             return false;
-
-        direction.Normalize();
-        Vector3 origin = firePoint.position;
-        Vector3 shotDirection = autoAim != null
-            ? autoAim.GetShotDirection(origin, direction, range, hitMask)
-            : direction;
 
         bool hasHit = Physics.Raycast(
             origin,
@@ -114,6 +107,39 @@ public class HitScanShooter : MonoBehaviour
         }
 
         return hasHit;
+    }
+
+    public bool TryGetPreviewShot(out Vector3 origin, Vector3 direction, out Vector3 shotDirection, out RaycastHit hit)
+    {
+        hit = default;
+        if (!TryGetShotDirection(direction, out origin, out shotDirection))
+            return false;
+
+        Physics.Raycast(
+            origin,
+            shotDirection,
+            out hit,
+            range,
+            hitMask,
+            QueryTriggerInteraction.Ignore);
+
+        return true;
+    }
+
+    private bool TryGetShotDirection(Vector3 direction, out Vector3 origin, out Vector3 shotDirection)
+    {
+        origin = firePoint != null ? firePoint.position : transform.position;
+        shotDirection = default;
+
+        if (direction.sqrMagnitude < MinShootDirectionSqrMagnitude)
+            return false;
+
+        direction.Normalize();
+        shotDirection = autoAim != null
+            ? autoAim.GetShotDirection(origin, direction, range, hitMask)
+            : direction;
+
+        return shotDirection.sqrMagnitude >= MinShootDirectionSqrMagnitude;
     }
 
     public void SetFirePoint(Transform newFirePoint)

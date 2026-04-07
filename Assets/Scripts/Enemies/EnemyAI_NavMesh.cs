@@ -28,33 +28,34 @@ public class EnemyAI_NavMesh : MonoBehaviour
 
     private void Start()
     {
-        if (target == null)
-        {
-            var go = GameObject.FindGameObjectWithTag(targetTag);
-            if (go != null) target = go.transform;
-        }
-
+        ResolveTarget();
         agent.stoppingDistance = stopDistance;
     }
 
     private void Update()
     {
-        if (target == null) return;
+        if (target == null)
+        {
+            ResolveTarget();
+            if (target == null)
+                return;
+        }
 
-        // периодически обновляем путь, чтобы не спамить SetDestination каждый кадр
+        if (agent == null || !agent.enabled || !agent.isOnNavMesh)
+            return;
+
+        // Repath periodically so SetDestination is not called every frame.
         if (Time.time >= nextRepathTime)
         {
             nextRepathTime = Time.time + repathInterval;
             agent.SetDestination(target.position);
         }
 
-        // доворот к игроку
+        // Rotate toward the player when the agent reaches stop distance.
         if (faceTargetOnStop && agent.hasPath && !agent.pathPending)
         {
             if (agent.remainingDistance <= agent.stoppingDistance + StopDistanceTolerance)
-            {
                 FaceTargetXZ(target.position);
-            }
         }
     }
 
@@ -63,9 +64,20 @@ public class EnemyAI_NavMesh : MonoBehaviour
         Vector3 dir = worldPos - transform.position;
         dir.y = 0f;
 
-        if (dir.sqrMagnitude < MinDirectionSqrMagnitude) return;
+        if (dir.sqrMagnitude < MinDirectionSqrMagnitude)
+            return;
 
         Quaternion rot = Quaternion.LookRotation(dir, Vector3.up);
         transform.rotation = Quaternion.Slerp(transform.rotation, rot, FaceTargetTurnSpeed * Time.deltaTime);
+    }
+
+    private void ResolveTarget()
+    {
+        if (target != null)
+            return;
+
+        GameObject go = GameObject.FindGameObjectWithTag(targetTag);
+        if (go != null)
+            target = go.transform;
     }
 }

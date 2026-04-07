@@ -5,12 +5,10 @@ using UnityEngine;
 public class LinkageNodeInteractionUI : MonoBehaviour
 {
     [Header("Prompt")]
-    [SerializeField] private string promptText = "\u041d\u0430\u0436\u043c\u0438\u0442\u0435 F \u0434\u043b\u044f \u0432\u0437\u043b\u043e\u043c\u0430 \u0443\u0437\u043b\u0430";
     [SerializeField] private float promptWidth = 520f;
     [SerializeField] private float promptBottomOffset = 110f;
 
     [Header("Window")]
-    [SerializeField] private string windowTitle = "\u0412\u0437\u043b\u043e\u043c LinkageNode";
     [SerializeField] private float windowWidth = 540f;
     [SerializeField] private float windowHeight = 220f;
 
@@ -45,7 +43,7 @@ public class LinkageNodeInteractionUI : MonoBehaviour
                 promptWidth,
                 40f);
 
-            GUI.Label(promptRect, promptText, centeredStyle);
+            GUI.Label(promptRect, interactionController.PromptText, centeredStyle);
             return;
         }
 
@@ -58,7 +56,7 @@ public class LinkageNodeInteractionUI : MonoBehaviour
             windowWidth,
             windowHeight);
 
-        GUI.Box(windowRect, windowTitle);
+        GUI.Box(windowRect, interactionController.WindowTitle);
 
         GUIStyle sequenceStyle = new GUIStyle(centeredStyle)
         {

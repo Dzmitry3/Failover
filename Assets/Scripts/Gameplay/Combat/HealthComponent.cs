@@ -14,8 +14,8 @@ public class HealthComponent : MonoBehaviour
     public event Action<float, float> OnHealthChanged;
     public event Action OnDeath;
 
-    // фильтр, который решает, можно ли применять delta.
-    // Возвращает true = можно, false = блок.
+    // Optional filter that decides whether a delta can be applied.
+    // Return true to allow the change, false to block it.
     public Func<float, bool> CanApplyDelta;
 
     private void Awake()
@@ -27,7 +27,7 @@ public class HealthComponent : MonoBehaviour
     {
         if (IsDead) return;
 
-        // решение на стороне объекта
+        // Let the owning object decide whether this delta is allowed.
         if (CanApplyDelta != null && !CanApplyDelta(delta))
             return;
 
