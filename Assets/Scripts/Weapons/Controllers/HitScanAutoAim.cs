@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class HitScanAutoAim : MonoBehaviour
+public class HitscanAutoAim : MonoBehaviour
 {
     private const string AimPointName = "AimPoint";
     private const float DirectionEpsilonSqr = 0.0001f;

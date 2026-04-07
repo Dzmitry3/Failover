@@ -1,8 +1,8 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(LinkageNodeInteractionController))]
-public class LinkageNodeInteractionUI : MonoBehaviour
+[RequireComponent(typeof(LinkageInteractionController))]
+public class LinkageInteractionOverlay : MonoBehaviour
 {
     [Header("Prompt")]
     [SerializeField] private float promptWidth = 520f;
@@ -16,11 +16,11 @@ public class LinkageNodeInteractionUI : MonoBehaviour
     [SerializeField] private int labelFontSize = 22;
     [SerializeField] private int sequenceFontSize = 34;
 
-    private LinkageNodeInteractionController interactionController;
+    private LinkageInteractionController interactionController;
 
     private void Awake()
     {
-        interactionController = GetComponent<LinkageNodeInteractionController>();
+        interactionController = GetComponent<LinkageInteractionController>();
     }
 
     private void OnGUI()
@@ -28,6 +28,7 @@ public class LinkageNodeInteractionUI : MonoBehaviour
         if (interactionController == null || !interactionController.CanRenderUi)
             return;
 
+        LinkageInteractionTextModel textModel = interactionController.TextModel;
         GUIStyle centeredStyle = new GUIStyle(GUI.skin.label)
         {
             alignment = TextAnchor.MiddleCenter,
@@ -43,7 +44,7 @@ public class LinkageNodeInteractionUI : MonoBehaviour
                 promptWidth,
                 40f);
 
-            GUI.Label(promptRect, interactionController.PromptText, centeredStyle);
+            GUI.Label(promptRect, textModel.PromptText, centeredStyle);
             return;
         }
 
@@ -56,7 +57,7 @@ public class LinkageNodeInteractionUI : MonoBehaviour
             windowWidth,
             windowHeight);
 
-        GUI.Box(windowRect, interactionController.WindowTitle);
+        GUI.Box(windowRect, textModel.WindowTitle);
 
         GUIStyle sequenceStyle = new GUIStyle(centeredStyle)
         {
@@ -65,19 +66,19 @@ public class LinkageNodeInteractionUI : MonoBehaviour
 
         GUI.Label(
             new Rect(windowRect.x + 20f, windowRect.y + 65f, windowRect.width - 40f, 50f),
-            interactionController.SequenceText,
+            textModel.SequenceText,
             sequenceStyle);
 
         GUI.Label(
             new Rect(windowRect.x + 20f, windowRect.y + 130f, windowRect.width - 40f, 30f),
-            interactionController.ProgressText,
+            textModel.ProgressText,
             centeredStyle);
 
-        if (!string.IsNullOrEmpty(interactionController.StatusMessage))
+        if (!string.IsNullOrEmpty(textModel.StatusMessage))
         {
             GUI.Label(
                 new Rect(windowRect.x + 20f, windowRect.y + 160f, windowRect.width - 40f, 30f),
-                interactionController.StatusMessage,
+                textModel.StatusMessage,
                 centeredStyle);
         }
     }

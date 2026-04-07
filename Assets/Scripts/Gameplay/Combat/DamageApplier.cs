@@ -1,4 +1,4 @@
-public class HealthProcessor
+public class DamageApplier
 {
     private const float CriticalDamageMultiplier = 2f;
     private const float ArmorDamageMultiplier = 0.7f;

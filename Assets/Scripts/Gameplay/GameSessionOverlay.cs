@@ -1,21 +1,13 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
-public class GameFlowUI : MonoBehaviour
+public class GameSessionOverlay : MonoBehaviour
 {
-    private enum SessionState
-    {
-        WaitingToStart,
-        Playing,
-        Won,
-        Lost
-    }
-
     public static bool RequiresManualStart => true;
 
-    private static GameFlowUI instance;
+    private static GameSessionOverlay instance;
 
     [Header("Window")]
     [SerializeField] private float windowWidth = 420f;
@@ -53,11 +45,10 @@ public class GameFlowUI : MonoBehaviour
     private WeaponController weaponController;
     private PlayerUpperBodyAim upperBodyAim;
     private PlayerInput playerInput;
-    private SessionState state = SessionState.WaitingToStart;
-    private float runStartedAt = -1f;
-    private float runDuration;
     private bool initialized;
     private Texture2D solidTexture;
+    private readonly GameSessionState sessionState = new();
+    private readonly FabricatorInteractionInstaller fabricatorInteractionInstaller = new();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStaticState()
@@ -71,11 +62,11 @@ public class GameFlowUI : MonoBehaviour
         if (instance != null)
             return;
 
-        if (FindFirstObjectByType<GameFlowUI>() != null)
+        if (FindFirstObjectByType<GameSessionOverlay>() != null)
             return;
 
-        GameObject bootstrapObject = new GameObject(nameof(GameFlowUI));
-        instance = bootstrapObject.AddComponent<GameFlowUI>();
+        GameObject bootstrapObject = new GameObject(nameof(GameSessionOverlay));
+        instance = bootstrapObject.AddComponent<GameSessionOverlay>();
     }
 
     private void Awake()
@@ -138,21 +129,17 @@ public class GameFlowUI : MonoBehaviour
         if (waveController == null || playerHealth == null || fabricator == null)
         {
             initialized = false;
+            sessionState.Reset();
             Time.timeScale = 1f;
             return;
         }
 
-        EnsureFabricatorInteraction();
-
+        fabricatorInteractionInstaller.EnsureInstalled(fabricator, linkageNode);
         fabricator.StateChanged += HandleFabricatorStateChanged;
-
-        if (playerHealth != null)
-            playerHealth.OnDeath += HandleLoss;
+        playerHealth.OnDeath += HandleLoss;
 
         initialized = true;
-        state = SessionState.WaitingToStart;
-        runStartedAt = -1f;
-        runDuration = 0f;
+        sessionState.Reset();
         ApplyPausedState(true);
     }
 
@@ -181,15 +168,15 @@ public class GameFlowUI : MonoBehaviour
 
         DrawHealthBar();
 
-        switch (state)
+        switch (sessionState.Current)
         {
-            case SessionState.WaitingToStart:
+            case GameSessionState.Status.WaitingToStart:
                 DrawStartWindow();
                 break;
-            case SessionState.Won:
+            case GameSessionState.Status.Won:
                 DrawResultWindow(winTitle);
                 break;
-            case SessionState.Lost:
+            case GameSessionState.Status.Lost:
                 DrawResultWindow(loseTitle);
                 break;
         }
@@ -223,7 +210,7 @@ public class GameFlowUI : MonoBehaviour
 
         GUI.Label(new Rect(windowRect.x + 20f, windowRect.y + 35f, windowRect.width - 40f, 40f), resultTitle, titleStyle);
         GUI.Label(new Rect(windowRect.x + 20f, windowRect.y + 95f, windowRect.width - 40f, 35f), "Время прохождения", labelStyle);
-        GUI.Label(new Rect(windowRect.x + 20f, windowRect.y + 130f, windowRect.width - 40f, 40f), FormatDuration(runDuration), timeStyle);
+        GUI.Label(new Rect(windowRect.x + 20f, windowRect.y + 130f, windowRect.width - 40f, 40f), FormatDuration(sessionState.RunDuration), timeStyle);
 
         if (GUI.Button(new Rect(windowRect.x + 110f, windowRect.y + 190f, windowRect.width - 220f, 38f), restartButtonText, buttonStyle))
             RestartScene();
@@ -231,36 +218,33 @@ public class GameFlowUI : MonoBehaviour
 
     private void StartRun()
     {
-        if (state != SessionState.WaitingToStart || waveController == null)
+        if (sessionState.Current != GameSessionState.Status.WaitingToStart || waveController == null)
             return;
 
-        state = SessionState.Playing;
-        runStartedAt = Time.time;
-        runDuration = 0f;
+        sessionState.StartRun(Time.time);
         ApplyPausedState(false);
         waveController.StartWaves();
     }
 
-    private void HandleFabricatorStateChanged(FabricatorState state)
+    private void HandleFabricatorStateChanged(FabricatorState fabricatorState)
     {
-        if (state != FabricatorState.Captured || this.state != SessionState.Playing)
+        if (fabricatorState != FabricatorState.Captured || !sessionState.IsPlaying)
             return;
 
-        CompleteRun(SessionState.Won);
+        CompleteRun(GameSessionState.Status.Won);
     }
 
     private void HandleLoss()
     {
-        if (state != SessionState.Playing)
+        if (!sessionState.IsPlaying)
             return;
 
-        CompleteRun(SessionState.Lost);
+        CompleteRun(GameSessionState.Status.Lost);
     }
 
-    private void CompleteRun(SessionState resultState)
+    private void CompleteRun(GameSessionState.Status resultState)
     {
-        runDuration = runStartedAt >= 0f ? Time.time - runStartedAt : 0f;
-        state = resultState;
+        sessionState.Complete(resultState, Time.time);
         ApplyPausedState(true);
     }
 
@@ -382,24 +366,5 @@ public class GameFlowUI : MonoBehaviour
 
         if (playerInput != null)
             playerInput.enabled = !paused;
-    }
-
-    private void EnsureFabricatorInteraction()
-    {
-        if (fabricator == null)
-            return;
-
-        LinkageMiniGame miniGame = fabricator.GetComponent<LinkageMiniGame>();
-        if (miniGame == null)
-            miniGame = fabricator.gameObject.AddComponent<LinkageMiniGame>();
-
-        LinkageNodeInteractionController controller = fabricator.GetComponent<LinkageNodeInteractionController>();
-        if (controller == null)
-            controller = fabricator.gameObject.AddComponent<LinkageNodeInteractionController>();
-
-        if (fabricator.GetComponent<LinkageNodeInteractionUI>() == null)
-            fabricator.gameObject.AddComponent<LinkageNodeInteractionUI>();
-
-        controller.ConfigureFabricatorInteraction(fabricator, linkageNode);
     }
 }

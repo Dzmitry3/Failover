@@ -76,7 +76,7 @@ GameObject:
   - component: {fileID: 2053474292211050032}
   - component: {fileID: 3782486128729291193}
   m_Layer: 8
-  m_Name: HitScanShooter
+  m_Name: HitscanShooter
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -108,7 +108,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68e1e2f96bdfa39438b577bfaed76690, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HitScanShooter
+  m_EditorClassIdentifier: Assembly-CSharp::HitscanShooter
   firePoint: {fileID: 8596756264797109306}
   range: 30
   damage: 10
@@ -130,7 +130,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e48f04cad510ed44ab1dcb91fcb7e3d1, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HitScanAutoAim
+  m_EditorClassIdentifier: Assembly-CSharp::HitscanAutoAim
   verticalAutoAim: 0
   verticalAutoAimRadius: 1.25
   horizontalAutoAim: 1

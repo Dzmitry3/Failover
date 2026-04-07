@@ -7872,7 +7872,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e0ebf90c16243f090ff56d4fccd3592, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LinkageNodeInteractionController
+  m_EditorClassIdentifier: Assembly-CSharp::LinkageInteractionController
   interactionDistance: 3
   linkageNode: {fileID: 228255945}
   fabricator: {fileID: 0}
@@ -7889,7 +7889,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7d1ef2bd8f6d45f9af6fc3a3e896031d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LinkageNodeInteractionUI
+  m_EditorClassIdentifier: Assembly-CSharp::LinkageInteractionOverlay
   promptWidth: 520
   promptBottomOffset: 110
   windowWidth: 540
@@ -7907,7 +7907,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7a01b7f55e064ae8b262a1ed5eb13d3e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LinkageMiniGame
+  m_EditorClassIdentifier: Assembly-CSharp::ArrowSequenceMiniGame
   sequenceLength: 4
   retryDelaySeconds: 2
 --- !u!1001 &233141854

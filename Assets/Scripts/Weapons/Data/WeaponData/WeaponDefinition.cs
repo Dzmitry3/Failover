@@ -1,10 +1,10 @@
 using UnityEngine;
 
 [CreateAssetMenu(
-    fileName = "WeaponData_",
-    menuName = "Game/Weapons/Weapon Data",
+    fileName = "WeaponDefinition_",
+    menuName = "Game/Weapons/Weapon Definition",
     order = 1)]
-public class WeaponData : ScriptableObject
+public class WeaponDefinition : ScriptableObject
 {
     [Header("General")]
     public string weaponName = "Pistol";

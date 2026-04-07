@@ -118,10 +118,10 @@ public class EnemyPool : MonoBehaviour
 
     private void ResetEnemy(GameObject enemy)
     {
-        EnemyBase enemyBase = enemy.GetComponent<EnemyBase>();
-        if (enemyBase != null)
+        EnemyLifecycle enemyLifecycle = enemy.GetComponent<EnemyLifecycle>();
+        if (enemyLifecycle != null)
         {
-            enemyBase.PrepareForSpawn();
+            enemyLifecycle.PrepareForSpawn();
         }
         else
         {
@@ -142,19 +142,19 @@ public class EnemyPool : MonoBehaviour
     {
         private EnemyPool owner;
         private GameObject trackedEnemy;
-        private EnemyBase trackedEnemyBase;
+        private EnemyLifecycle trackedEnemyLifecycle;
 
         public void Bind(EnemyPool newOwner, GameObject enemy)
         {
-            if (trackedEnemyBase != null)
-                trackedEnemyBase.AliveStateChanged -= HandleAliveStateChanged;
+            if (trackedEnemyLifecycle != null)
+                trackedEnemyLifecycle.AliveStateChanged -= HandleAliveStateChanged;
 
             owner = newOwner;
             trackedEnemy = enemy;
-            trackedEnemyBase = enemy != null ? enemy.GetComponent<EnemyBase>() : null;
+            trackedEnemyLifecycle = enemy != null ? enemy.GetComponent<EnemyLifecycle>() : null;
 
-            if (trackedEnemyBase != null)
-                trackedEnemyBase.AliveStateChanged += HandleAliveStateChanged;
+            if (trackedEnemyLifecycle != null)
+                trackedEnemyLifecycle.AliveStateChanged += HandleAliveStateChanged;
         }
 
         private void OnDisable()
@@ -164,11 +164,11 @@ public class EnemyPool : MonoBehaviour
 
         private void OnDestroy()
         {
-            if (trackedEnemyBase != null)
-                trackedEnemyBase.AliveStateChanged -= HandleAliveStateChanged;
+            if (trackedEnemyLifecycle != null)
+                trackedEnemyLifecycle.AliveStateChanged -= HandleAliveStateChanged;
         }
 
-        private void HandleAliveStateChanged(EnemyBase _, bool alive)
+        private void HandleAliveStateChanged(EnemyLifecycle _, bool alive)
         {
             owner?.NotifyAliveStateChanged(trackedEnemy, alive);
         }

@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(LinkageMiniGame))]
-public class LinkageNodeInteractionController : MonoBehaviour
+[RequireComponent(typeof(ArrowSequenceMiniGame))]
+public class LinkageInteractionController : MonoBehaviour
 {
     private const float MinNavigateInputSqrMagnitude = 0.25f;
 
@@ -12,37 +12,22 @@ public class LinkageNodeInteractionController : MonoBehaviour
     [SerializeField] private LinkageNode linkageNode;
     [SerializeField] private Fabricator fabricator;
     [SerializeField] private LinkageNode requiredLinkageNode;
-    [SerializeField] private LinkageMiniGame miniGame;
+    [SerializeField] private ArrowSequenceMiniGame miniGame;
 
     public bool IsNearNode { get; private set; }
     public bool CanRenderUi => CanShowUi && IsNearNode;
     public bool ShowPrompt => CanRenderUi && !miniGame.IsRunning;
     public bool ShowWindow => CanRenderUi && miniGame.IsRunning;
-    public string SequenceText => miniGame.SequenceText;
-    public string ProgressText => miniGame.ProgressText;
-    public string StatusMessage => miniGame.StatusMessage;
-    public string PromptText => IsFabricatorInteraction
-        ? (IsPrerequisiteMet ? "Нажмите F, чтобы захватить Fabricator" : "Сначала захватите узел связи")
-        : "Нажмите F для взлома узла";
-    public string WindowTitle => IsFabricatorInteraction ? "Взлом Fabricator" : "Взлом LinkageNode";
+    public LinkageInteractionTextModel TextModel => LinkageInteractionTextModel.Create(captureTarget, miniGame);
 
-    private bool IsFabricatorInteraction => fabricator != null;
-    private bool IsPrerequisiteMet => !IsFabricatorInteraction || requiredLinkageNode == null || requiredLinkageNode.IsCaptured;
-    private bool CanInteract => IsFabricatorInteraction
-        ? fabricator.CurrentState != FabricatorState.Captured &&
-          fabricator.CurrentState != FabricatorState.Destroyed &&
-          IsPrerequisiteMet
-        : linkageNode != null && linkageNode.CanInteract;
-    private bool CanShowUi => IsFabricatorInteraction
-        ? fabricator != null &&
-          fabricator.CurrentState != FabricatorState.Captured &&
-          fabricator.CurrentState != FabricatorState.Destroyed
-        : linkageNode != null && linkageNode.CanInteract;
+    private bool CanInteract => captureTarget != null && captureTarget.CanInteract;
+    private bool CanShowUi => captureTarget != null && captureTarget.CanShowUi;
     private PlayerController PlayerController => linkageNode != null
         ? linkageNode.PlayerController
         : GetTargetPlayerController();
     private PlayerInput PlayerInput => GetTargetPlayerInput();
 
+    private LinkageCaptureTarget captureTarget;
     private InputAction interactAction;
     private InputAction miniGameNavigateAction;
     private InputAction moveAction;
@@ -58,13 +43,15 @@ public class LinkageNodeInteractionController : MonoBehaviour
             fabricator = GetComponent<Fabricator>();
 
         if (miniGame == null)
-            miniGame = GetComponent<LinkageMiniGame>();
+            miniGame = GetComponent<ArrowSequenceMiniGame>();
 
+        RefreshCaptureTarget();
         ResolveInputActions();
     }
 
     private void OnEnable()
     {
+        RefreshCaptureTarget();
         ResolveInputActions();
         lastNavigateInput = Vector2.zero;
     }
@@ -140,7 +127,7 @@ public class LinkageNodeInteractionController : MonoBehaviour
 
     private void CompleteMiniGame()
     {
-        bool captured = TryCaptureTarget();
+        bool captured = captureTarget != null && captureTarget.TryCapture();
         miniGame.SetSuccessMessage(captured ? "Захват выполнен." : "Захват не выполнен.");
         FinishMiniGameSession();
     }
@@ -219,21 +206,8 @@ public class LinkageNodeInteractionController : MonoBehaviour
         fabricator = targetFabricator;
         requiredLinkageNode = prerequisiteNode;
         linkageNode = null;
+        RefreshCaptureTarget();
         ResolveInputActions();
-    }
-
-    private bool TryCaptureTarget()
-    {
-        if (IsFabricatorInteraction)
-        {
-            if (!IsPrerequisiteMet || fabricator == null)
-                return false;
-
-            fabricator.SetCaptured();
-            return fabricator.CurrentState == FabricatorState.Captured;
-        }
-
-        return linkageNode != null && linkageNode.TryCapture();
     }
 
     private PlayerController GetTargetPlayerController()
@@ -268,5 +242,10 @@ public class LinkageNodeInteractionController : MonoBehaviour
             moveAction.Enable();
 
         moveActionWasEnabled = false;
+    }
+
+    private void RefreshCaptureTarget()
+    {
+        captureTarget = new LinkageCaptureTarget(fabricator, linkageNode, requiredLinkageNode);
     }
 }

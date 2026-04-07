@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ecb7eb881b4e7b4facfa1ed6d98f535, type: 3}
   m_Name: WeaponData_Pistol
-  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponDefinition
   weaponName: Pistol
   damage: 50
   fireRate: 6

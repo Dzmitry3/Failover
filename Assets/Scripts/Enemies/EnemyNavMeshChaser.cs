@@ -3,7 +3,7 @@ using UnityEngine.AI;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(NavMeshAgent))]
-public class EnemyAI_NavMesh : MonoBehaviour
+public class EnemyNavMeshChaser : MonoBehaviour
 {
     private const float StopDistanceTolerance = 0.05f;
     private const float MinDirectionSqrMagnitude = 0.0001f;

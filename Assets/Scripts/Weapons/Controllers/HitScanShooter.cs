@@ -1,7 +1,7 @@
 using UnityEngine;
 using Zenject;
 
-public class HitScanShooter : MonoBehaviour
+public class HitscanShooter : MonoBehaviour
 {
     private const float MinShootDirectionSqrMagnitude = 0.0001f;
     private const float MinRange = 0.1f;
@@ -13,26 +13,29 @@ public class HitScanShooter : MonoBehaviour
     [SerializeField] private float range = 30f;
     [SerializeField] private float damage = 10f;
     [SerializeField] private LayerMask hitMask; // Damageable | Environment
-    [SerializeField] private HitScanAutoAim autoAim;
+    [SerializeField] private HitscanAutoAim autoAim;
 
     [Header("Debug")]
     [SerializeField] private bool debugDraw = true;
     [SerializeField] private float debugDrawTime = 0.05f;
     [SerializeField] private bool debugDamageLogs = false;
-    
-    private HealthProcessor _healthProcessor;
-    private bool _missingProcessorWarned;
+
+    private DamageApplier damageApplier;
+    private bool missingProcessorWarned;
 
     [Inject]
-    public void Construct(HealthProcessor healthProcessor)
+    public void Construct(DamageApplier damageApplier)
     {
-        _healthProcessor = healthProcessor;
+        this.damageApplier = damageApplier;
     }
 
     private void InitializeReferences()
     {
-        if (firePoint == null) firePoint = transform;
-        if (autoAim == null) autoAim = GetComponent<HitScanAutoAim>();
+        if (firePoint == null)
+            firePoint = transform;
+
+        if (autoAim == null)
+            autoAim = GetComponent<HitscanAutoAim>();
     }
 
     private void Reset()
@@ -44,7 +47,6 @@ public class HitScanShooter : MonoBehaviour
     {
         InitializeReferences();
     }
-
 
     public bool Shoot(Vector3 direction, out RaycastHit hit)
     {
@@ -59,28 +61,26 @@ public class HitScanShooter : MonoBehaviour
             out hit,
             range,
             hitMask,
-            QueryTriggerInteraction.Ignore
-        );
+            QueryTriggerInteraction.Ignore);
 
         if (hasHit)
         {
             HealthComponent health = hit.collider.GetComponentInParent<HealthComponent>();
             if (health != null)
             {
-                if (_healthProcessor != null)
+                if (damageApplier != null)
                 {
-                    _healthProcessor.DealDamage(health, damage);
+                    damageApplier.DealDamage(health, damage);
                 }
                 else
                 {
-                    // Safe fallback: still apply damage even if DI setup is broken.
                     health.ApplyDelta(-damage);
 
-                    if (!_missingProcessorWarned)
+                    if (!missingProcessorWarned)
                     {
-                        _missingProcessorWarned = true;
+                        missingProcessorWarned = true;
                         Debug.LogWarning(
-                            $"{nameof(HitScanShooter)}: {nameof(HealthProcessor)} was not injected, direct damage fallback is used.",
+                            $"{nameof(HitscanShooter)}: {nameof(DamageApplier)} was not injected, direct damage fallback is used.",
                             this);
                     }
                 }
@@ -88,14 +88,14 @@ public class HitScanShooter : MonoBehaviour
                 if (debugDamageLogs)
                 {
                     Debug.Log(
-                        $"{nameof(HitScanShooter)} hit {hit.collider.name}, damage={damage}, hp={health.Current}/{health.Max}",
+                        $"{nameof(HitscanShooter)} hit {hit.collider.name}, damage={damage}, hp={health.Current}/{health.Max}",
                         this);
                 }
             }
             else if (debugDamageLogs)
             {
                 Debug.Log(
-                    $"{nameof(HitScanShooter)} hit {hit.collider.name}, but no {nameof(HealthComponent)} found on target root.",
+                    $"{nameof(HitscanShooter)} hit {hit.collider.name}, but no {nameof(HealthComponent)} found on target root.",
                     this);
             }
         }

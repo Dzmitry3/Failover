@@ -2,7 +2,7 @@ using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class LinkageMiniGame : MonoBehaviour
+public class ArrowSequenceMiniGame : MonoBehaviour
 {
     [SerializeField] private int sequenceLength = 8;
     [SerializeField] private float retryDelaySeconds = 2f;

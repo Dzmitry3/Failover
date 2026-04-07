@@ -3,15 +3,14 @@ using UnityEngine.AI;
 using Zenject;
 
 [DisallowMultipleComponent]
-public class EnemyDummyAnimation : MonoBehaviour
+public class EnemyCombatAnimator : MonoBehaviour
 {
     private const float StopDistanceTolerance = 0.05f;
-    private const float MinFacingSqrMagnitude = 0.0001f;
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int IsDeadHash = Animator.StringToHash("IsDead");
     private static readonly int AttackHash = Animator.StringToHash("Attack");
 
-    [SerializeField] private EnemyBase enemy;
+    [SerializeField] private EnemyLifecycle enemy;
     [SerializeField] private NavMeshAgent agent;
     [SerializeField] private Animator animator;
     [SerializeField, Min(0.01f)] private float moveSpeedThreshold = 0.1f;
@@ -23,27 +22,22 @@ public class EnemyDummyAnimation : MonoBehaviour
     [SerializeField, Range(0f, 180f)] private float attackAngle = 90f;
     [SerializeField] private string playerTag = "Player";
 
-    private bool _deathStarted;
-    private bool _attackLocked;
-    private bool _attackDamageApplied;
-    private float _attackLockEndTime;
-    private float _nextAttackTime;
-    private float _attackImpactTime;
-    private bool _missingProcessorWarned;
-    private Transform _targetTransform;
-    private HealthComponent _targetHealth;
-    private HealthProcessor _healthProcessor;
+    private bool deathStarted;
+    private bool missingProcessorWarned;
+    private DamageApplier damageApplier;
+    private EnemyAttackTimer attackTimer;
+    private EnemyTargetTracker targetTracker;
 
     [Inject]
-    public void Construct(HealthProcessor healthProcessor)
+    public void Construct(DamageApplier damageApplier)
     {
-        _healthProcessor = healthProcessor;
+        this.damageApplier = damageApplier;
     }
 
     private void InitializeReferences()
     {
         if (enemy == null)
-            enemy = GetComponent<EnemyBase>();
+            enemy = GetComponent<EnemyLifecycle>();
 
         if (agent == null)
             agent = GetComponent<NavMeshAgent>();
@@ -60,7 +54,7 @@ public class EnemyDummyAnimation : MonoBehaviour
     private void Awake()
     {
         InitializeReferences();
-        ResolveTarget();
+        RebuildRuntimeState();
     }
 
     private void OnEnable()
@@ -75,16 +69,12 @@ public class EnemyDummyAnimation : MonoBehaviour
             animator.ResetTrigger(AttackHash);
         }
 
-        _deathStarted = false;
-        _attackLocked = false;
-        _attackDamageApplied = false;
-        _attackLockEndTime = 0f;
-        _attackImpactTime = 0f;
-        _nextAttackTime = Time.time;
+        RebuildRuntimeState();
+        attackTimer.Reset(Time.time);
+        deathStarted = false;
         SetAgentStopped(false);
         SetDead(false);
         SetSpeed(0f);
-        ResolveTarget();
     }
 
     private void OnDisable()
@@ -95,20 +85,19 @@ public class EnemyDummyAnimation : MonoBehaviour
 
     private void Update()
     {
-        if (_deathStarted)
+        if (deathStarted)
             return;
 
-        if (_attackLocked)
+        if (attackTimer.IsLocked)
         {
             TryApplyAttackDamage();
 
-            if (Time.time < _attackLockEndTime)
+            if (!attackTimer.TryRelease(Time.time))
             {
                 SetSpeed(0f);
                 return;
             }
 
-            _attackLocked = false;
             SetAgentStopped(false);
         }
 
@@ -121,9 +110,8 @@ public class EnemyDummyAnimation : MonoBehaviour
 
     private void HandleDeath()
     {
-        _deathStarted = true;
-        _attackLocked = false;
-        _attackDamageApplied = true;
+        deathStarted = true;
+        attackTimer.Abort();
         SetAgentStopped(true);
         SetSpeed(0f);
         SetDead(true);
@@ -153,7 +141,7 @@ public class EnemyDummyAnimation : MonoBehaviour
         if (animator == null || agent == null || !agent.enabled)
             return false;
 
-        if (Time.time < _nextAttackTime)
+        if (!attackTimer.CanAttack(Time.time))
             return false;
 
         if (!agent.hasPath || agent.pathPending)
@@ -164,15 +152,11 @@ public class EnemyDummyAnimation : MonoBehaviour
 
     private void TriggerAttack()
     {
-        _attackLocked = true;
-        _attackDamageApplied = false;
-        _attackLockEndTime = Time.time + attackLockDuration;
-        _attackImpactTime = Time.time + Mathf.Min(attackImpactDelay, attackLockDuration);
+        attackTimer.BeginAttack(Time.time);
         SetAgentStopped(true);
         SetSpeed(0f);
         animator.ResetTrigger(AttackHash);
         animator.SetTrigger(AttackHash);
-        _nextAttackTime = Time.time + attackRepeatDelay;
     }
 
     private void SetAgentStopped(bool isStopped)
@@ -200,80 +184,37 @@ public class EnemyDummyAnimation : MonoBehaviour
 
     private void TryApplyAttackDamage()
     {
-        if (_attackDamageApplied || Time.time < _attackImpactTime || attackDamage <= 0f)
+        if (!attackTimer.ShouldApplyDamage(Time.time, attackDamage))
             return;
 
-        _attackDamageApplied = true;
+        attackTimer.MarkDamageApplied();
 
-        if (!IsTargetInAttackArc())
+        if (!targetTracker.IsTargetInAttackArc(transform))
             return;
 
-        if (_targetHealth == null || _targetHealth.IsDead)
+        if (!targetTracker.TryGetLiveTarget(out HealthComponent targetHealth) || targetHealth == null || targetHealth.IsDead)
             return;
 
-        if (_healthProcessor != null)
+        if (damageApplier != null)
         {
-            _healthProcessor.DealDamage(_targetHealth, attackDamage);
+            damageApplier.DealDamage(targetHealth, attackDamage);
             return;
         }
 
-        _targetHealth.ApplyDelta(-attackDamage);
+        targetHealth.ApplyDelta(-attackDamage);
 
-        if (_missingProcessorWarned)
+        if (missingProcessorWarned)
             return;
 
-        _missingProcessorWarned = true;
+        missingProcessorWarned = true;
         Debug.LogWarning(
-            $"{nameof(EnemyDummyAnimation)}: {nameof(HealthProcessor)} was not injected, direct damage fallback is used.",
+            $"{nameof(EnemyCombatAnimator)}: {nameof(DamageApplier)} was not injected, direct damage fallback is used.",
             this);
     }
 
-    private bool IsTargetInAttackArc()
+    private void RebuildRuntimeState()
     {
-        if (!ResolveTarget())
-            return false;
-
-        Vector3 toTarget = _targetTransform.position - transform.position;
-        toTarget.y = 0f;
-
-        if (toTarget.sqrMagnitude > attackRange * attackRange)
-            return false;
-
-        Vector3 forward = transform.forward;
-        forward.y = 0f;
-
-        if (forward.sqrMagnitude < MinFacingSqrMagnitude || toTarget.sqrMagnitude < MinFacingSqrMagnitude)
-            return false;
-
-        forward.Normalize();
-        toTarget.Normalize();
-
-        float minDot = Mathf.Cos(attackAngle * 0.5f * Mathf.Deg2Rad);
-        return Vector3.Dot(forward, toTarget) >= minDot;
-    }
-
-    private bool ResolveTarget()
-    {
-        if (_targetHealth != null && !_targetHealth.IsDead)
-        {
-            _targetTransform = _targetHealth.transform;
-            return true;
-        }
-
-        GameObject player = GameObject.FindGameObjectWithTag(playerTag);
-        if (player == null)
-        {
-            _targetTransform = null;
-            _targetHealth = null;
-            return false;
-        }
-
-        _targetTransform = player.transform;
-        _targetHealth = player.GetComponentInParent<HealthComponent>();
-
-        if (_targetHealth == null)
-            _targetHealth = player.GetComponentInChildren<HealthComponent>(true);
-
-        return _targetHealth != null;
+        attackTimer = new EnemyAttackTimer(attackLockDuration, attackRepeatDelay, attackImpactDelay);
+        targetTracker = new EnemyTargetTracker(playerTag, attackRange, attackAngle);
     }
 }

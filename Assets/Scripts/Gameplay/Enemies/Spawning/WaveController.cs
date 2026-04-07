@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.AI;
 
 [DisallowMultipleComponent]
 public class WaveController : MonoBehaviour
@@ -16,18 +15,6 @@ public class WaveController : MonoBehaviour
         [Min(0)] public int maxAliveOverride = 0;
         [Min(0f)] public float startDelay = 0f;
         public bool waitUntilCleared = true;
-    }
-
-    private enum State
-    {
-        Idle,
-        PreparingWave,
-        Spawning,
-        WaitingClear,
-        PausedByFabricator,
-        HaltedByFabricator,
-        BetweenWaves,
-        Completed
     }
 
     [Header("Fabricator")]
@@ -58,15 +45,11 @@ public class WaveController : MonoBehaviour
     [Header("NavMesh")]
     [SerializeField] private float navMeshSampleRadius = 2.0f;
 
-    private State state = State.Idle;
-    private int currentWaveIndex = -1;
-    private int spawnedThisWave;
-    private float stateEndTime;
-    private float nextSpawnTime;
-    private float pauseStartedAt = -1f;
-    private State stateBeforePause = State.Idle;
+    private readonly WaveRunState runState = new();
+    private WaveSetupValidator setupValidator;
+    private NavMeshSpawnPointSelector spawnPointSelector;
 
-    public bool IsCompleted => state == State.Completed;
+    public bool IsCompleted => runState.IsCompleted;
 
     private IReadOnlyList<Wave> EffectiveWaves =>
         waveSequence != null && waveSequence.HasWaves ? waveSequence.Waves : waves;
@@ -92,21 +75,19 @@ public class WaveController : MonoBehaviour
 
         enemyPool.Initialize(CalcPrewarmCount());
 
-        if (startOnStart && !GameFlowUI.RequiresManualStart)
+        if (startOnStart && !GameSessionOverlay.RequiresManualStart)
             StartWaves();
     }
 
     public void StartWaves()
     {
-        if (state != State.Idle && state != State.Completed)
+        if (runState.Phase != WaveRunPhase.Idle && !runState.IsCompleted)
             return;
 
         if (TryEnterPermanentHalt())
             return;
 
-        currentWaveIndex = -1;
-        spawnedThisWave = 0;
-        SetTimedState(State.BetweenWaves, 0f);
+        runState.ResetForRun(Time.time);
         SyncWithFabricatorState();
     }
 
@@ -114,34 +95,34 @@ public class WaveController : MonoBehaviour
     {
         SyncWithFabricatorState();
 
-        switch (state)
+        switch (runState.Phase)
         {
-            case State.Idle:
-            case State.Completed:
-            case State.PausedByFabricator:
-            case State.HaltedByFabricator:
+            case WaveRunPhase.Idle:
+            case WaveRunPhase.Completed:
+            case WaveRunPhase.PausedByFabricator:
+            case WaveRunPhase.HaltedByFabricator:
                 return;
 
-            case State.BetweenWaves:
-                if (Time.time < stateEndTime)
+            case WaveRunPhase.BetweenWaves:
+                if (Time.time < runState.StateEndTime)
                     return;
 
                 BeginNextWaveOrComplete();
                 return;
 
-            case State.PreparingWave:
-                if (Time.time < stateEndTime)
+            case WaveRunPhase.PreparingWave:
+                if (Time.time < runState.StateEndTime)
                     return;
 
-                SetNextSpawnTime(0f);
-                state = State.Spawning;
+                runState.SetNextSpawnTime(Time.time, 0f);
+                runState.SetPhase(WaveRunPhase.Spawning);
                 return;
 
-            case State.Spawning:
+            case WaveRunPhase.Spawning:
                 TickSpawning();
                 return;
 
-            case State.WaitingClear:
+            case WaveRunPhase.WaitingClear:
                 TickWaitingClear();
                 return;
         }
@@ -155,59 +136,19 @@ public class WaveController : MonoBehaviour
         if (enemyPool == null)
             enemyPool = GetComponent<EnemyPool>();
 
-        if (fabricator == null)
-        {
-            Debug.LogError(
-                $"{nameof(WaveController)}: Fabricator is not assigned. Assign it in inspector or enable auto-find.",
-                this);
+        setupValidator ??= new WaveSetupValidator(this);
+        if (!setupValidator.Validate(fabricator, enemyPool, spawnPoints, EffectiveWaves, globalMaxAlive))
             return false;
-        }
 
-        if (enemyPool == null)
-        {
-            Debug.LogError($"{nameof(WaveController)}: EnemyPool is not assigned.", this);
-            return false;
-        }
-
-        if (!enemyPool.IsConfigured)
-        {
-            Debug.LogError($"{nameof(WaveController)}: EnemyPool is missing Enemy Prefab.", this);
-            return false;
-        }
-
-        if (spawnPoints == null || spawnPoints.Length == 0)
-        {
-            Debug.LogError($"{nameof(WaveController)}: Spawn Points are not assigned.", this);
-            return false;
-        }
-
-        for (int i = 0; i < spawnPoints.Length; i++)
-        {
-            if (spawnPoints[i] == null)
-            {
-                Debug.LogError($"{nameof(WaveController)}: Spawn Points contain null entries.", this);
-                return false;
-            }
-        }
-
-        if (EffectiveWaves == null || EffectiveWaves.Count == 0)
-        {
-            Debug.LogError($"{nameof(WaveController)}: no waves are configured in scene or WaveSequenceData.", this);
-            return false;
-        }
-
-        if (globalMaxAlive <= 0)
-        {
-            Debug.LogError($"{nameof(WaveController)}: Global Max Alive must be > 0.", this);
-            return false;
-        }
-
+        spawnPointSelector = new NavMeshSpawnPointSelector(this, spawnPoints, navMeshSampleRadius);
         return true;
     }
 
     private void OnValidate()
     {
         ResolveSpawnPoints();
+        if (spawnPoints != null && spawnPoints.Length > 0)
+            spawnPointSelector = new NavMeshSpawnPointSelector(this, spawnPoints, navMeshSampleRadius);
     }
 
     private void TryResolveFabricator()
@@ -294,27 +235,23 @@ public class WaveController : MonoBehaviour
         if (TryEnterPermanentHalt())
             return;
 
-        int nextIndex = currentWaveIndex + 1;
+        int nextIndex = runState.CurrentWaveIndex + 1;
         IReadOnlyList<Wave> effectiveWaves = EffectiveWaves;
         if (nextIndex >= effectiveWaves.Count)
         {
             if (loop)
             {
-                currentWaveIndex = -1;
-                SetTimedState(State.BetweenWaves, 0f);
+                runState.ResetForRun(Time.time);
                 return;
             }
 
-            state = State.Completed;
+            runState.SetPhase(WaveRunPhase.Completed);
             Completed?.Invoke();
             return;
         }
 
-        currentWaveIndex = nextIndex;
-        spawnedThisWave = 0;
-
-        Wave wave = effectiveWaves[currentWaveIndex];
-        SetTimedState(State.PreparingWave, wave.startDelay);
+        Wave wave = effectiveWaves[nextIndex];
+        runState.BeginWave(nextIndex, Time.time, wave.startDelay);
     }
 
     private void TickSpawning()
@@ -322,11 +259,11 @@ public class WaveController : MonoBehaviour
         if (TryEnterPermanentHalt())
             return;
 
-        Wave wave = EffectiveWaves[currentWaveIndex];
-        if (spawnedThisWave >= wave.enemiesToSpawn)
+        Wave wave = EffectiveWaves[runState.CurrentWaveIndex];
+        if (runState.SpawnedThisWave >= wave.enemiesToSpawn)
         {
             if (wave.waitUntilCleared)
-                state = State.WaitingClear;
+                runState.SetPhase(WaveRunPhase.WaitingClear);
             else
                 EnterBetweenWaves();
 
@@ -337,17 +274,17 @@ public class WaveController : MonoBehaviour
         if (enemyPool.AliveCount >= maxAlive)
             return;
 
-        if (Time.time < nextSpawnTime)
+        if (Time.time < runState.NextSpawnTime)
             return;
 
-        SetNextSpawnTime(wave.spawnInterval);
+        runState.SetNextSpawnTime(Time.time, wave.spawnInterval);
 
         GameObject enemy = enemyPool.GetOrCreate();
         if (enemy == null)
             return;
 
         if (SpawnFromPool(enemy))
-            spawnedThisWave++;
+            runState.MarkSpawned();
     }
 
     private void TickWaitingClear()
@@ -363,7 +300,7 @@ public class WaveController : MonoBehaviour
         if (TryEnterPermanentHalt())
             return;
 
-        SetTimedState(State.BetweenWaves, timeBetweenWaves);
+        runState.SetTimedPhase(WaveRunPhase.BetweenWaves, Time.time, timeBetweenWaves);
     }
 
     private void SyncWithFabricatorState()
@@ -382,18 +319,16 @@ public class WaveController : MonoBehaviour
             return;
         }
 
-        if (state == State.PausedByFabricator)
+        if (runState.Phase == WaveRunPhase.PausedByFabricator)
             ResumeAfterFabricatorPause();
     }
 
     private void PauseByFabricator()
     {
-        if (state == State.PausedByFabricator || state == State.HaltedByFabricator)
+        if (runState.Phase == WaveRunPhase.PausedByFabricator || runState.Phase == WaveRunPhase.HaltedByFabricator)
             return;
 
-        stateBeforePause = state;
-        pauseStartedAt = Time.time;
-        state = State.PausedByFabricator;
+        runState.Pause(Time.time);
 
         Debug.Log(
             $"{nameof(WaveController)}: spawning paused by Fabricator. Reason: {fabricator.StopReason}",
@@ -402,24 +337,18 @@ public class WaveController : MonoBehaviour
 
     private void ResumeAfterFabricatorPause()
     {
-        if (state != State.PausedByFabricator)
+        if (runState.Phase != WaveRunPhase.PausedByFabricator)
             return;
 
-        float pausedDuration = pauseStartedAt >= 0f ? Time.time - pauseStartedAt : 0f;
-        stateEndTime += pausedDuration;
-        nextSpawnTime += pausedDuration;
-
-        state = stateBeforePause;
-        pauseStartedAt = -1f;
-
+        runState.Resume(Time.time);
         Debug.Log($"{nameof(WaveController)}: spawning resumed (Fabricator active).", this);
     }
 
     private bool CanPauseForFabricator()
     {
-        return state == State.PreparingWave ||
-               state == State.Spawning ||
-               state == State.BetweenWaves;
+        return runState.Phase == WaveRunPhase.PreparingWave ||
+               runState.Phase == WaveRunPhase.Spawning ||
+               runState.Phase == WaveRunPhase.BetweenWaves;
     }
 
     private bool TryEnterPermanentHalt()
@@ -433,43 +362,23 @@ public class WaveController : MonoBehaviour
 
     private void EnterPermanentHalt()
     {
-        if (state == State.HaltedByFabricator || state == State.Completed)
+        if (runState.Phase == WaveRunPhase.HaltedByFabricator || runState.Phase == WaveRunPhase.Completed)
             return;
 
-        state = State.HaltedByFabricator;
+        runState.SetPhase(WaveRunPhase.HaltedByFabricator);
 
         Debug.Log(
             $"{nameof(WaveController)}: spawning permanently halted. Reason: {fabricator?.StopReason}",
             this);
     }
 
-    private void SetTimedState(State newState, float delaySeconds)
-    {
-        state = newState;
-        stateEndTime = Time.time + Mathf.Max(0f, delaySeconds);
-    }
-
-    private void SetNextSpawnTime(float delaySeconds)
-    {
-        nextSpawnTime = Time.time + Mathf.Max(0f, delaySeconds);
-    }
-
     private bool SpawnFromPool(GameObject enemy)
     {
-        Transform spawnPoint = spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Length)];
-        Vector3 position = spawnPoint.position;
-
-        if (!NavMesh.SamplePosition(position, out NavMeshHit hit, navMeshSampleRadius, NavMesh.AllAreas))
-        {
-            Debug.LogWarning(
-                $"{nameof(WaveController)}: failed to find NavMesh near spawn point {spawnPoint.name}. Enemy spawn was skipped.",
-                spawnPoint);
+        spawnPointSelector ??= new NavMeshSpawnPointSelector(this, spawnPoints, navMeshSampleRadius);
+        if (!spawnPointSelector.TryGetSpawnPose(out Vector3 position, out Quaternion rotation))
             return false;
-        }
 
-        position = hit.position;
-
-        enemyPool.Activate(enemy, position, spawnPoint.rotation);
+        enemyPool.Activate(enemy, position, rotation);
         return true;
     }
 }

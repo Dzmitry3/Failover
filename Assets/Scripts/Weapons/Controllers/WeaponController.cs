@@ -5,18 +5,15 @@ using UnityEngine.InputSystem;
 public class WeaponController : MonoBehaviour
 {
     private const float MinFireRate = 0.01f;
-    private const float MinHorizontalDirectionSqrMagnitude = 0.0001f;
-    private const float MinShotDirectionSqrMagnitude = 0.0001f;
-    private const float MinGamepadAimInputSqrMagnitude = 0.04f;
 
     [Header("Data")]
-    [SerializeField] private WeaponData weaponData;
+    [SerializeField] private WeaponDefinition weaponData;
 
     [Header("References")]
     [SerializeField] private Camera aimCamera;
     [SerializeField] private Transform rotateRoot;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private HitScanShooter shooter;
+    [SerializeField] private HitscanShooter shooter;
     [SerializeField] private AimPreviewRenderer aimPreviewRenderer;
 
     [Header("Aiming")]
@@ -24,23 +21,38 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private float maxAimRayDistance = 200f;
     [SerializeField] private bool rotateToAim = false;
 
-    private bool _attackHeld;
-    private float _nextFireTime;
-    private bool _hasAimPoint;
-    private Vector3 _currentAimPoint;
-    private PlayerInput _playerInput;
-    private InputAction _aimPointAction;
-    private InputAction _lookAction;
-    private bool _gameplayInputEnabled = true;
+    private bool attackHeld;
+    private bool hasAimPoint;
+    private Vector3 currentAimPoint;
+    private PlayerInput playerInput;
+    private InputAction aimPointAction;
+    private InputAction lookAction;
+    private bool gameplayInputEnabled = true;
+    private WeaponAimSolver aimSolver;
+    private WeaponFireCooldown fireCooldown;
 
     private void InitializeReferences()
     {
-        if (aimCamera == null) aimCamera = Camera.main;
-        if (rotateRoot == null) rotateRoot = transform;
-        if (shooter == null) shooter = GetComponent<HitScanShooter>();
-        if (aimPreviewRenderer == null) aimPreviewRenderer = GetComponent<AimPreviewRenderer>();
-        if (aimPreviewRenderer == null) aimPreviewRenderer = gameObject.AddComponent<AimPreviewRenderer>();
-        if (_playerInput == null) _playerInput = GetComponentInParent<PlayerInput>();
+        if (aimCamera == null)
+            aimCamera = Camera.main;
+
+        if (rotateRoot == null)
+            rotateRoot = transform;
+
+        if (shooter == null)
+            shooter = GetComponent<HitscanShooter>();
+
+        if (aimPreviewRenderer == null)
+            aimPreviewRenderer = GetComponent<AimPreviewRenderer>();
+
+        if (aimPreviewRenderer == null)
+            aimPreviewRenderer = gameObject.AddComponent<AimPreviewRenderer>();
+
+        if (playerInput == null)
+            playerInput = GetComponentInParent<PlayerInput>();
+
+        fireCooldown ??= new WeaponFireCooldown(MinFireRate);
+        RefreshAimSolver();
         InitializeInputActions();
     }
 
@@ -54,10 +66,10 @@ public class WeaponController : MonoBehaviour
         InitializeReferences();
 
         if (weaponData == null)
-            Debug.LogError($"{nameof(WeaponController)}: WeaponData is not assigned.", this);
+            Debug.LogError($"{nameof(WeaponController)}: {nameof(WeaponDefinition)} is not assigned.", this);
 
         if (shooter == null)
-            Debug.LogError($"{nameof(WeaponController)}: HitScanShooter is not assigned.", this);
+            Debug.LogError($"{nameof(WeaponController)}: {nameof(HitscanShooter)} is not assigned.", this);
 
         if (firePoint != null && shooter != null)
             shooter.SetFirePoint(firePoint);
@@ -73,7 +85,8 @@ public class WeaponController : MonoBehaviour
 
     private void ApplyWeaponDataToShooter()
     {
-        if (weaponData == null || shooter == null) return;
+        if (weaponData == null || shooter == null)
+            return;
 
         shooter.SetDamage(weaponData.damage);
         shooter.SetRange(weaponData.range);
@@ -87,97 +100,96 @@ public class WeaponController : MonoBehaviour
     {
         if (ctx.started)
         {
-            _attackHeld = true;
+            attackHeld = true;
             FireOnce();
             return;
         }
 
         if (ctx.canceled)
-        {
-            _attackHeld = false;
-        }
+            attackHeld = false;
     }
 
     private void Update()
     {
-        if (weaponData == null || shooter == null) return;
-        if (!_gameplayInputEnabled)
+        if (weaponData == null || shooter == null)
+            return;
+
+        if (!gameplayInputEnabled)
         {
-            _hasAimPoint = false;
+            hasAimPoint = false;
             aimPreviewRenderer?.HidePreview();
             return;
         }
 
-        _hasAimPoint = TryGetAimPoint(out _currentAimPoint);
+        if (aimCamera == null && Camera.main != null)
+        {
+            aimCamera = Camera.main;
+            RefreshAimSolver();
+        }
+
+        hasAimPoint = TryGetAimPoint(out currentAimPoint);
 
         if (aimPreviewRenderer != null)
-            aimPreviewRenderer.UpdatePreview(_currentAimPoint, _hasAimPoint);
+            aimPreviewRenderer.UpdatePreview(currentAimPoint, hasAimPoint);
 
-        // Rotate independently from shooting so it works even when automatic=false.
-        if (rotateToAim && _hasAimPoint)
-            RotateTowards(_currentAimPoint);
+        if (rotateToAim && hasAimPoint)
+            aimSolver?.RotateTowards(currentAimPoint);
 
-        if (!_attackHeld) return;
-        if (!weaponData.automatic) return;
+        if (!attackHeld || !weaponData.automatic)
+            return;
 
         FireOnce();
     }
 
     private void FireOnce()
     {
-        if (weaponData == null || shooter == null) return;
-        if (!_hasAimPoint && !TryGetAimPoint(out _currentAimPoint)) return;
-        if (Time.time < _nextFireTime) return;
+        if (weaponData == null || shooter == null)
+            return;
 
-        if (ShootTowards(_currentAimPoint))
-            ConsumeFireCooldown();
+        if (!hasAimPoint && !TryGetAimPoint(out currentAimPoint))
+            return;
+
+        if (!fireCooldown.CanFire(Time.time))
+            return;
+
+        if (ShootTowards(currentAimPoint))
+            fireCooldown.Consume(Time.time, weaponData.fireRate);
     }
 
     public bool TryGetAimDirection(out Vector3 direction)
     {
         direction = Vector3.zero;
-        if (!_gameplayInputEnabled)
+        if (!gameplayInputEnabled || !hasAimPoint || rotateRoot == null || aimSolver == null)
             return false;
 
-        return _hasAimPoint &&
-               TryGetDirection(rotateRoot.position, _currentAimPoint, ignoreVertical: true, out direction);
+        return aimSolver.TryGetDirection(rotateRoot.position, currentAimPoint, ignoreVertical: true, out direction);
     }
 
     public bool TryGetAimPointWorld(out Vector3 aimPoint)
     {
-        aimPoint = _currentAimPoint;
-        return _gameplayInputEnabled && _hasAimPoint;
+        aimPoint = currentAimPoint;
+        return gameplayInputEnabled && hasAimPoint;
     }
 
     public void SetGameplayInputEnabled(bool enabled)
     {
-        _gameplayInputEnabled = enabled;
+        gameplayInputEnabled = enabled;
         if (enabled)
             return;
 
-        _attackHeld = false;
-        _hasAimPoint = false;
-        _currentAimPoint = Vector3.zero;
+        attackHeld = false;
+        hasAimPoint = false;
+        currentAimPoint = Vector3.zero;
         aimPreviewRenderer?.HidePreview();
-    }
-
-    private void ConsumeFireCooldown()
-    {
-        float rate = Mathf.Max(MinFireRate, weaponData.fireRate);
-        _nextFireTime = Time.time + (1f / rate);
-    }
-
-    private bool TryGetHorizontalDirection(Vector3 from, Vector3 to, out Vector3 direction)
-    {
-        return TryGetDirection(from, to, ignoreVertical: true, out direction);
     }
 
     private bool ShootTowards(Vector3 aimPoint)
     {
-        Vector3 origin = (firePoint != null) ? firePoint.position : shooter.transform.position;
-        if (!TryGetDirection(origin, aimPoint, ignoreVertical: true, out var dir)) return false;
+        Vector3 origin = firePoint != null ? firePoint.position : shooter.transform.position;
+        if (aimSolver == null || !aimSolver.TryGetDirection(origin, aimPoint, ignoreVertical: true, out Vector3 direction))
+            return false;
 
-        shooter.Shoot(dir, out _);
+        shooter.Shoot(direction, out _);
         aimPreviewRenderer?.Flash();
         return true;
     }
@@ -187,116 +199,44 @@ public class WeaponController : MonoBehaviour
         aimPoint = default;
 
         if (aimCamera == null)
+        {
             aimCamera = Camera.main;
+            RefreshAimSolver();
+        }
 
-        if (aimCamera == null || rotateRoot == null)
+        if (aimSolver == null || rotateRoot == null)
             return false;
 
-        if (TryGetPointerAimPoint(out aimPoint))
-            return true;
-
-        if (TryGetLookAimPoint(out aimPoint))
-            return true;
-
-        return false;
-    }
-
-    private bool TryGetPointerAimPoint(out Vector3 aimPoint)
-    {
-        aimPoint = default;
-        if (_aimPointAction == null)
+        if (aimPointAction == null || lookAction == null)
             InitializeInputActions();
 
-        if (_aimPointAction == null || !_aimPointAction.enabled)
-            return false;
+        Vector2 pointerInput = aimPointAction != null ? aimPointAction.ReadValue<Vector2>() : Vector2.zero;
+        Vector2 lookInput = lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
 
-        Vector2 screenPos = _aimPointAction.ReadValue<Vector2>();
-        if (screenPos.sqrMagnitude < MinHorizontalDirectionSqrMagnitude)
-            return false;
-
-        Ray ray = aimCamera.ScreenPointToRay(screenPos);
-
-        if (Physics.Raycast(ray, out var hit, maxAimRayDistance, aimGroundMask, QueryTriggerInteraction.Ignore))
-        {
-            aimPoint = hit.point;
-            return true;
-        }
-
-        Plane plane = new Plane(Vector3.up, new Vector3(0f, rotateRoot.position.y, 0f));
-        if (plane.Raycast(ray, out float enter))
-        {
-            aimPoint = ray.GetPoint(enter);
-            return true;
-        }
-
-        return false;
+        return aimSolver.TryGetAimPoint(
+            pointerInput,
+            aimPointAction != null && aimPointAction.enabled,
+            lookInput,
+            lookAction != null && lookAction.enabled,
+            out aimPoint);
     }
 
-    private bool TryGetLookAimPoint(out Vector3 aimPoint)
+    private void RefreshAimSolver()
     {
-        aimPoint = default;
-        if (_lookAction == null)
-            InitializeInputActions();
-
-        if (_lookAction == null || !_lookAction.enabled)
-            return false;
-
-        Vector2 lookInput = _lookAction.ReadValue<Vector2>();
-        if (lookInput.sqrMagnitude < MinGamepadAimInputSqrMagnitude)
-            return false;
-
-        Vector3 cameraForward = aimCamera.transform.forward;
-        Vector3 cameraRight = aimCamera.transform.right;
-        cameraForward.y = 0f;
-        cameraRight.y = 0f;
-
-        if (cameraForward.sqrMagnitude < MinHorizontalDirectionSqrMagnitude ||
-            cameraRight.sqrMagnitude < MinHorizontalDirectionSqrMagnitude)
-        {
-            return false;
-        }
-
-        cameraForward.Normalize();
-        cameraRight.Normalize();
-
-        Vector3 aimDirection = cameraRight * lookInput.x + cameraForward * lookInput.y;
-        if (aimDirection.sqrMagnitude < MinHorizontalDirectionSqrMagnitude)
-            return false;
-
-        aimPoint = rotateRoot.position + aimDirection.normalized * maxAimRayDistance;
-        return true;
-    }
-
-    private static bool TryGetDirection(Vector3 from, Vector3 to, bool ignoreVertical, out Vector3 direction)
-    {
-        direction = to - from;
-
-        if (!ignoreVertical)
-            return direction.sqrMagnitude >= MinShotDirectionSqrMagnitude;
-
-        direction.y = 0f;
-        if (direction.sqrMagnitude < MinHorizontalDirectionSqrMagnitude)
-            return false;
-
-        direction.Normalize();
-        return true;
-    }
-
-    private void RotateTowards(Vector3 worldPoint)
-    {
-        if (!TryGetHorizontalDirection(rotateRoot.position, worldPoint, out var dir)) return;
-        rotateRoot.rotation = Quaternion.LookRotation(dir, Vector3.up);
+        aimSolver = aimCamera != null && rotateRoot != null
+            ? new WeaponAimSolver(aimCamera, rotateRoot, aimGroundMask, maxAimRayDistance)
+            : null;
     }
 
     private void InitializeInputActions()
     {
-        if (_playerInput == null)
-            _playerInput = GetComponentInParent<PlayerInput>();
+        if (playerInput == null)
+            playerInput = GetComponentInParent<PlayerInput>();
 
-        if (_playerInput?.actions == null)
+        if (playerInput?.actions == null)
             return;
 
-        _aimPointAction = _playerInput.actions.FindAction("Player/AimPoint", throwIfNotFound: false);
-        _lookAction = _playerInput.actions.FindAction("Player/Look", throwIfNotFound: false);
+        aimPointAction = playerInput.actions.FindAction("Player/AimPoint", throwIfNotFound: false);
+        lookAction = playerInput.actions.FindAction("Player/Look", throwIfNotFound: false);
     }
 }

@@ -3,7 +3,7 @@ using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class EnemyBase : MonoBehaviour
+public class EnemyLifecycle : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private HealthComponent health;
@@ -15,7 +15,7 @@ public class EnemyBase : MonoBehaviour
     [SerializeField] private bool despawnOnDeath = true;
     [SerializeField, Min(0f)] private float despawnDelaySeconds;
 
-    public event Action<EnemyBase, bool> AliveStateChanged;
+    public event Action<EnemyLifecycle, bool> AliveStateChanged;
 
     public HealthComponent Health => health;
     public bool IsDead => health != null && health.IsDead;
@@ -47,7 +47,7 @@ public class EnemyBase : MonoBehaviour
 
         if (health == null)
         {
-            Debug.LogError($"{nameof(EnemyBase)}: HealthComponent not found in children.", this);
+            Debug.LogError($"{nameof(EnemyLifecycle)}: HealthComponent not found in children.", this);
             enabled = false;
         }
     }

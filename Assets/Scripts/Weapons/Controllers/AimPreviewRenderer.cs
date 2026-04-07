@@ -12,7 +12,7 @@ public class AimPreviewRenderer : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private Transform firePoint;
-    [SerializeField] private HitScanShooter shooter;
+    [SerializeField] private HitscanShooter shooter;
 
     [Header("Preview")]
     [SerializeField] private bool showAimPreview = true;
@@ -46,7 +46,7 @@ public class AimPreviewRenderer : MonoBehaviour
         firePoint = newFirePoint != null ? newFirePoint : transform;
     }
 
-    public void SetShooter(HitScanShooter newShooter)
+    public void SetShooter(HitscanShooter newShooter)
     {
         shooter = newShooter;
     }
@@ -174,7 +174,7 @@ public class AimPreviewRenderer : MonoBehaviour
     private void InitializeReferences()
     {
         firePoint ??= transform;
-        shooter ??= GetComponentInChildren<HitScanShooter>();
+        shooter ??= GetComponentInChildren<HitscanShooter>();
     }
 
     private Material CreateMaterial(Color color)

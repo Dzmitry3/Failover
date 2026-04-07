@@ -127,7 +127,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 11f500d1e86f2094f8940f171b2d2a07, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBase
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyLifecycle
   health: {fileID: 7375964066481541191}
   collidersToDisable:
   - {fileID: 8301014486002201447}
@@ -171,7 +171,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d2fe540cc6a39994db6c5e51361871b4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyAI_NavMesh
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyNavMeshChaser
   target: {fileID: 0}
   targetTag: Player
   repathInterval: 0.1
@@ -188,7 +188,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e3f4c6f6a7b74e388b4da24b73af0e91, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyDummyAnimation
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyCombatAnimator
   enemy: {fileID: 4701412833166313944}
   agent: {fileID: 5707946845843456038}
   animator: {fileID: 0}

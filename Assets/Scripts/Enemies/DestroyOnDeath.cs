@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class EnemyDummy : MonoBehaviour
+public class DestroyOnDeath : MonoBehaviour
 {
     [SerializeField] private HealthComponent health;
 
@@ -20,10 +20,10 @@ public class EnemyDummy : MonoBehaviour
     {
         InitializeReferences();
 
-        if (GetComponent<EnemyBase>() != null)
+        if (GetComponent<EnemyLifecycle>() != null)
         {
             Debug.LogError(
-                $"{nameof(EnemyDummy)} should not be used together with {nameof(EnemyBase)}. Remove {nameof(EnemyDummy)} from pooled enemy prefabs.",
+                $"{nameof(DestroyOnDeath)} should not be used together with {nameof(EnemyLifecycle)}. Remove {nameof(DestroyOnDeath)} from pooled enemy prefabs.",
                 this);
             enabled = false;
             return;
@@ -31,7 +31,7 @@ public class EnemyDummy : MonoBehaviour
 
         if (health == null)
         {
-            Debug.LogError($"{nameof(EnemyDummy)}: HealthComponent not found on the same GameObject.", this);
+            Debug.LogError($"{nameof(DestroyOnDeath)}: HealthComponent not found on the same GameObject.", this);
             enabled = false;
             return;
         }
