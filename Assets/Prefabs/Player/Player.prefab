@@ -276,6 +276,18 @@ MonoBehaviour:
       m_Calls: []
     m_ActionId: d0c0d7cc-6960-43b2-95de-df03a07efa60
     m_ActionName: UI/TrackedDeviceOrientation
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 7fddce62-7b22-4304-b9b6-74b804ef36af
+    m_ActionName: 'Player/Interact[/Keyboard/f,/Keyboard/e]'
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 359f116c-2143-4b3d-a0a2-3d15f619b2d1
+    m_ActionName: 'Player/AimPoint[/Mouse/position]'
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 6bb9a4e7-0106-475b-9ac9-2416e53ee215
+    m_ActionName: 'Player/MiniGameNavigate[/Keyboard/upArrow,/Keyboard/downArrow,/Keyboard/leftArrow,/Keyboard/rightArrow]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: Keyboard&Mouse
   m_DefaultActionMap: Player
@@ -320,7 +332,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   moveSpeed: 5
   visualTurnSpeed: 720
-  weaponController: {fileID: 0}
+  weaponController: {fileID: 8600150026858988525}
+  movementCamera: {fileID: 0}
+  health: {fileID: 7421925544225683552}
   gravity: -20
   groundedStickForce: -2
 --- !u!114 &7421925544225683552

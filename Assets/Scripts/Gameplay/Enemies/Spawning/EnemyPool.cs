@@ -13,7 +13,9 @@ public class EnemyPool : MonoBehaviour
     [Tooltip("If the pool is exhausted, create a new enemy instance.")]
     [SerializeField] private bool expandPoolIfEmpty = true;
 
-    private readonly List<GameObject> pool = new();
+    private readonly Queue<GameObject> pool = new();
+    private readonly HashSet<GameObject> pooledEnemies = new();
+    private readonly HashSet<GameObject> queuedEnemies = new();
     private readonly HashSet<GameObject> activeEnemies = new();
     private readonly HashSet<GameObject> aliveEnemies = new();
     private DiContainer container;
@@ -41,17 +43,15 @@ public class EnemyPool : MonoBehaviour
 
     public GameObject GetOrCreate()
     {
-        for (int i = 0; i < pool.Count; i++)
-        {
-            GameObject enemy = pool[i];
-            if (enemy != null && !enemy.activeInHierarchy)
-                return enemy;
-        }
+        GameObject enemy = TryDequeueAvailableEnemy();
+        if (enemy != null)
+            return enemy;
 
         if (!expandPoolIfEmpty)
             return null;
 
-        return CreatePooledEnemy();
+        CreatePooledEnemy();
+        return TryDequeueAvailableEnemy();
     }
 
     public void Activate(GameObject enemy, Vector3 position, Quaternion rotation)
@@ -77,6 +77,7 @@ public class EnemyPool : MonoBehaviour
 
         activeEnemies.Remove(enemy);
         aliveEnemies.Remove(enemy);
+        EnqueueAvailableEnemy(enemy);
     }
 
     public void NotifyAliveStateChanged(GameObject enemy, bool alive)
@@ -92,7 +93,7 @@ public class EnemyPool : MonoBehaviour
 
     private void PrewarmTo(int targetCount)
     {
-        while (pool.Count < targetCount)
+        while (pooledEnemies.Count < targetCount)
             CreatePooledEnemy();
     }
 
@@ -101,10 +102,19 @@ public class EnemyPool : MonoBehaviour
         GameObject enemy = container != null
             ? container.InstantiatePrefab(enemyPrefab, transform)
             : Instantiate(enemyPrefab, transform);
+        pooledEnemies.Add(enemy);
         RegisterTracker(enemy);
         enemy.SetActive(false);
-        pool.Add(enemy);
+        EnqueueAvailableEnemy(enemy);
         return enemy;
+    }
+
+    private void NotifyDestroyed(GameObject enemy)
+    {
+        activeEnemies.Remove(enemy);
+        aliveEnemies.Remove(enemy);
+        queuedEnemies.Remove(enemy);
+        pooledEnemies.Remove(enemy);
     }
 
     private void RegisterTracker(GameObject enemy)
@@ -138,6 +148,28 @@ public class EnemyPool : MonoBehaviour
         }
     }
 
+    private GameObject TryDequeueAvailableEnemy()
+    {
+        while (pool.Count > 0)
+        {
+            GameObject enemy = pool.Dequeue();
+            queuedEnemies.Remove(enemy);
+
+            if (enemy != null && !enemy.activeInHierarchy)
+                return enemy;
+        }
+
+        return null;
+    }
+
+    private void EnqueueAvailableEnemy(GameObject enemy)
+    {
+        if (enemy == null || pooledEnemies.Contains(enemy) == false || queuedEnemies.Add(enemy) == false)
+            return;
+
+        pool.Enqueue(enemy);
+    }
+
     private sealed class EnemyPoolTracker : MonoBehaviour
     {
         private EnemyPool owner;
@@ -166,6 +198,8 @@ public class EnemyPool : MonoBehaviour
         {
             if (trackedEnemyLifecycle != null)
                 trackedEnemyLifecycle.AliveStateChanged -= HandleAliveStateChanged;
+
+            owner?.NotifyDestroyed(trackedEnemy);
         }
 
         private void HandleAliveStateChanged(EnemyLifecycle _, bool alive)
